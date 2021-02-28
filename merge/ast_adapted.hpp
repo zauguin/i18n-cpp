@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../lib/ast.hpp"
+#include "../common/ast.hpp"
 #include <boost/fusion/include/adapt_struct.hpp>
 
 BOOST_FUSION_ADAPT_STRUCT(client::ast::Comment, kind, content)

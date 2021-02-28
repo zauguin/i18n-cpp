@@ -1,4 +1,4 @@
-#include "../lib/ast.hpp"
+#include "../common/ast.hpp"
 #include "messages.hpp"
 #include "config.hpp"
 

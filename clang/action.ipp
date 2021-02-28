@@ -25,14 +25,23 @@
 #include <optional>
 #include <string_view>
 
-#include "../lib/ast.hpp"
+#include "../common/ast.hpp"
 #include "action.h"
 
 namespace {
 
 using clang::SourceLocation;
 using clang::SourceManager;
+using llvm::dyn_cast;
 using llvm::StringRef;
+
+template <typename T>
+using optional = llvm::Optional<T>;
+constexpr auto nullopt = llvm::None;
+template <typename T>
+auto make_optional(T value) {
+  return llvm::Optional<T>(std::move(value));
+}
 
 inline SourceLocation locToLineBegin(SourceLocation loc, SourceManager &sm) {
   return loc.getLocWithOffset(1 - sm.getSpellingColumnNumber(loc));
@@ -166,11 +175,14 @@ class i18nVisitor : public clang::RecursiveASTVisitor<i18nVisitor> {
                 continue;
               break;
             }
-        std::optional<std::optional<std::string>>
-            msgid = extract_string(begin_msgid, end_msgid),
-            context = extract_string(begin_context, end_context),
-            domain = extract_string(begin_domain, end_domain),
-            plural = extract_string(begin_plural, end_plural);
+        optional<std::optional<std::string>> msgid = extract_string(begin_msgid,
+                                                                    end_msgid),
+                                             context = extract_string(
+                                                 begin_context, end_context),
+                                             domain = extract_string(
+                                                 begin_domain, end_domain),
+                                             plural = extract_string(
+                                                 begin_plural, end_plural);
         if (!domain || !context || !msgid || !plural) return true;
         if (!*msgid) {
           printf("msgid can not be NULL\n");
@@ -191,12 +203,13 @@ class i18nVisitor : public clang::RecursiveASTVisitor<i18nVisitor> {
       if (attr->getAnnotation() == "mfk::i18n") {
         auto type =
             func->getReturnType().getTypePtr()->getUnqualifiedDesugaredType();
-        if (types.contains(type)) {
+        /* if (types.contains(type)) { */ //< Would work in C++20, but we try to minimize C++20 features
+        if (types.find(type) != types.end()) {
           functions.insert({func->getCanonicalDecl(), type});
           return true;
         } else {
           // Look at the arguments
-          std::optional<std::size_t> msgid, context, domain, plural;
+          optional<std::size_t> msgid, context, domain, plural;
           for (auto *param : func->parameters())
             for (auto *attr : param->specific_attrs<clang::AnnotateAttr>()) {
               if (attr->getAnnotation() == "mfk::i18n::context::begin")
@@ -242,7 +255,7 @@ class i18nVisitor : public clang::RecursiveASTVisitor<i18nVisitor> {
     if (callee_iter_literal != literalFunctions.end()) {
       bool success = false;
       auto msgid = get_argument_string(
-          call, std::make_optional(callee_iter_literal->second.msgid));
+          call, make_optional(callee_iter_literal->second.msgid));
       if (!msgid) return true;
       if (!*msgid) {
         fprintf(stderr, "Message ID can not be NULL");
@@ -282,22 +295,22 @@ class i18nVisitor : public clang::RecursiveASTVisitor<i18nVisitor> {
   std::set<std::pair<const clang::Type *, SourceLocation>> locations;
 
   struct Indices {
-    std::optional<std::size_t> domain;
-    std::optional<std::size_t> context;
+    optional<std::size_t> domain;
+    optional<std::size_t> context;
     std::size_t msgid;
-    std::optional<std::size_t> plural;
+    optional<std::size_t> plural;
   };
   std::map<const clang::FunctionDecl *, Indices> literalFunctions;
   std::map<SourceLocation, Entry> literalLocations;
 
  private:
-  std::optional<std::optional<std::string>> get_argument_string(
-      clang::CallExpr *call, std::optional<std::size_t> index) {
-    if (!index) return std::make_optional(std::optional<std::string>());
+  optional<std::optional<std::string>> get_argument_string(
+      clang::CallExpr *call, optional<std::size_t> index) {
+    if (!index) return ::make_optional(std::optional<std::string>());
     return extract_string(call->getArg(*index), nullptr);
   }
 
-  std::optional<std::optional<std::string>> extract_string(
+  optional<std::optional<std::string>> extract_string(
       clang::VarDecl *begin_decl, clang::VarDecl *end_decl) {
     clang::DeclRefExpr *begin_expr =
         begin_decl ? sema->BuildDeclRefExpr(begin_decl, begin_decl->getType(),
@@ -309,22 +322,22 @@ class i18nVisitor : public clang::RecursiveASTVisitor<i18nVisitor> {
                  : nullptr;
     return extract_string(begin_expr, end_expr);
   }
-  std::optional<std::optional<std::string>> extract_string(
-      clang::Expr *begin_expr, clang::Expr *end_expr) {
+  optional<std::optional<std::string>> extract_string(clang::Expr *begin_expr,
+                                                      clang::Expr *end_expr) {
     if (!begin_expr || evaluates_to_nullptr(begin_expr, *context))
-      return std::make_optional(std::optional<std::string>());
+      return ::make_optional(std::optional<std::string>());
 
     if (end_expr && evaluates_to_nullptr(end_expr, *context))
       end_expr = nullptr;
 
     if (begin_expr->getType().getCanonicalType() != str_type) {
       auto builder = diag->Report(begin_expr->getBeginLoc(), wrong_string_type);
-      return std::nullopt;
+      return nullopt;
     }
 
     if (end_expr && end_expr->getType().getCanonicalType() != str_type) {
       auto builder = diag->Report(end_expr->getBeginLoc(), wrong_string_type);
-      return std::nullopt;
+      return nullopt;
     }
 
     auto subscript_expr = [&] {
@@ -344,10 +357,10 @@ class i18nVisitor : public clang::RecursiveASTVisitor<i18nVisitor> {
         return expr.get()->getIntegerConstantExpr(*context);
       }();
 
-      if (!len_value.hasValue()) return std::nullopt;
+      if (!len_value.hasValue()) return nullopt;
       if (len_value.getValue().isNegative()) {
         auto builder = diag->Report(end_expr->getBeginLoc(), wrong_string_type);
-        return std::nullopt;
+        return nullopt;
       }
 
       len = len_value.getValue().getExtValue();
@@ -360,12 +373,12 @@ class i18nVisitor : public clang::RecursiveASTVisitor<i18nVisitor> {
       str_index->setValue(*context, index);
       auto byte_value = subscript_expr->getIntegerConstantExpr(*context);
       if (!byte_value.hasValue()) {
-        return std::nullopt;
+        return nullopt;
       }
       if (len == -1 && byte_value.getValue().isNullValue()) break;
       str.push_back(byte_value.getValue().getExtValue());
     }
-    return str;
+    return std::make_optional(str);
   }
 
  private:
@@ -439,7 +452,7 @@ class SemaConsumer : public clang::SemaConsumer {
 class i18nConsumer : public SemaConsumer {
  private:
   clang::CompilerInstance *ci;
-  std::optional<llvm::StringRef> domain_filter;
+  optional<llvm::StringRef> domain_filter;
   bool empty_domain;
   llvm::SmallVector<std::pair<SourceLocation, client::ast::Message>, 0>
       messages;
@@ -449,7 +462,7 @@ class i18nConsumer : public SemaConsumer {
   CommentHandler handler{comments};
 
   i18nConsumer(clang::CompilerInstance &ci,
-               std::optional<llvm::StringRef> domain_filter, bool empty_domain)
+               optional<llvm::StringRef> domain_filter, bool empty_domain)
       : ci(&ci), domain_filter(domain_filter), empty_domain(empty_domain) {
     ci.getPreprocessor().addCommentHandler(&handler);
   }
@@ -541,7 +554,7 @@ class i18nAction : public clang::PluginASTAction {
   clang::CompilerInstance *ci;
 
  private:
-  std::optional<llvm::StringRef> domain_filter;
+  optional<llvm::StringRef> domain_filter;
   bool empty_domain;
 };
 

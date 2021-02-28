@@ -1,4 +1,4 @@
-#include "../lib/ast.hpp"
+#include "../common/ast.hpp"
 
 namespace client::ast {
 
