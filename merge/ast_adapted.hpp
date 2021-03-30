@@ -5,4 +5,5 @@
 
 BOOST_FUSION_ADAPT_STRUCT(client::ast::Comment, kind, content)
 
-BOOST_FUSION_ADAPT_STRUCT(client::ast::Message, comments, context, singular, plural, translation)
+BOOST_FUSION_ADAPT_STRUCT(client::ast::Message, translatorComments, extractedComments, flags, context, singular, plural, translation)
+/* BOOST_FUSION_ADAPT_STRUCT(client::ast::Message, translatorComments, extractedComments, flags, context, singular, plural, translation) */

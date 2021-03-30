@@ -2,6 +2,7 @@
 
 #include <boost/spirit/home/x3/support/utility/annotate_on_success.hpp>
 #include <boost/spirit/home/x3/support/utility/error_reporting.hpp>
+#include <cstring>
 
 namespace client {
 namespace parser {
@@ -77,38 +78,60 @@ struct control_sequence_: x3::symbols<char> {
 
 const auto any_control_sequence = '\\' > (
     control_sequence_()
-  | ('x' >> x3::uint_parser<char, 16, 1, 2>())
-  | x3::uint_parser<char, 8, 1, 3>()
+  | ('x' > x3::uint_parser<unsigned char, 16, 2, 2>())
+  | x3::uint_parser<unsigned char, 8, 1, 3>()
 );
 
 const auto comment_kind = comment_kind_() | x3::attr(ast::Comment::Kind::Translator);
 
 struct message_class: error_handler {};
-struct comment_class: x3::annotate_on_success {};
+struct extracted_comment_class: x3::annotate_on_success {};
 
 const x3::rule<quoted_string_class, std::string> quoted_string = "quoted_string";
 const x3::rule<struct quoted_strings, std::string> quoted_strings = "quoted_strings";
-const x3::rule<comment_class, ast::Comment> comment = "comment";
+const x3::rule<extracted_comment_class, std::pair<std::string, std::optional<std::string>>> extracted_comment = "extracted_comment";
 const x3::rule<message_class, ast::Message> message = "message";
+const x3::rule<struct raw_line, std::string> raw_line = "raw_line";
 
-const auto &raw_line = lexeme[*(char_ - x3::eol) >> x3::eol];
+const auto &raw_line_def = lexeme[*(char_ - x3::eol) >> x3::eol];
 
 auto append = [](auto &context) {
   _val(context) += _attr(context);
 };
 const auto quoted_string_def = lexeme['"' >> *(any_control_sequence | (char_ - '"' - '\n')) > '"'];
 const auto quoted_strings_def = +quoted_string[append];
-const auto comment_def = lexeme['#' >> comment_kind >> -lit(' ') >> raw_line];
+auto add_extracted = [](auto &context) {
+  for (auto &&s : _attr(context))
+    if (_val(context).second) {
+      *_val(context).second += '\n';
+      *_val(context).second += s;
+    } else
+      _val(context).second = s;
+};
+auto add_reference = [](auto &context) {
+  _val(context).first = at_c<1>(_attr(context));
+  for (auto &&s : at_c<0>(_attr(context)))
+    if (_val(context).second) {
+      *_val(context).second += '\n';
+      *_val(context).second += s;
+    } else
+      _val(context).second = s;
+};
+const auto extracted_comment_def =
+    (*lexeme["#. " > raw_line] >> lexeme["#: " > raw_line])[add_reference]
+  | (+lexeme["#. " > raw_line])[add_extracted];
 
 const auto message_def =
-    *comment
+    *lexeme["# " > raw_line]
+  > *extracted_comment
+  > -lexeme["#, " > raw_line]
   > -("msgctxt" > quoted_strings)
   > "msgid"  > quoted_strings
   > -("msgid_plural"  > quoted_strings)
   > +("msgstr" > -x3::omit['[' > uint_ > ']'] > quoted_strings)
   ;
 
-BOOST_SPIRIT_DEFINE(quoted_string, quoted_strings, comment);
+BOOST_SPIRIT_DEFINE(raw_line, quoted_string, quoted_strings, extracted_comment);
 BOOST_SPIRIT_DEFINE(message);
 
 }

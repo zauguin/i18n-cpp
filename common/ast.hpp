@@ -22,7 +22,9 @@ struct Comment: position_tagged {
 };
 
 struct Message: position_tagged {
-  std::vector<Comment> comments;
+  std::vector<std::string> translatorComments;
+  std::vector<std::pair<std::optional<std::string>, std::optional<std::string>>> extractedComments;
+  std::optional<std::string> flags;
   std::optional<std::string> context;
   std::string singular;
   std::optional<std::string> plural;
