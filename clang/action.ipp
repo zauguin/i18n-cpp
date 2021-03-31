@@ -222,14 +222,14 @@ class i18nVisitor : public clang::RecursiveASTVisitor<i18nVisitor> {
           // Look at the arguments
           OptionalInt<unsigned short> msgid, context, domain, plural;
           for (auto *param : func->parameters())
-            for (auto *attr : param->specific_attrs<clang::AnnotateAttr>()) {
-              if (attr->getAnnotation() == "mfk::i18n::context::begin")
+            for (auto *arg_attr : param->specific_attrs<clang::AnnotateAttr>()) {
+              if (arg_attr->getAnnotation() == "mfk::i18n::context::begin")
                 context = param->getFunctionScopeIndex();
-              else if (attr->getAnnotation() == "mfk::i18n::singular::begin")
+              else if (arg_attr->getAnnotation() == "mfk::i18n::singular::begin")
                 msgid = param->getFunctionScopeIndex();
-              else if (attr->getAnnotation() == "mfk::i18n::plural::begin")
+              else if (arg_attr->getAnnotation() == "mfk::i18n::plural::begin")
                 plural = param->getFunctionScopeIndex();
-              else if (attr->getAnnotation() == "mfk::i18n::domain::begin")
+              else if (arg_attr->getAnnotation() == "mfk::i18n::domain::begin")
                 domain = param->getFunctionScopeIndex();
               else
                 continue;
@@ -263,8 +263,7 @@ class i18nVisitor : public clang::RecursiveASTVisitor<i18nVisitor> {
 
     auto callee_iter_literal = literalFunctions.find(callee);
     if (callee_iter_literal != literalFunctions.end()) {
-      bool success = false;
-      auto msgid   = get_argument_string(call, callee_iter_literal->second.msgid);
+      auto msgid = get_argument_string(call, callee_iter_literal->second.msgid);
       if (!msgid) return true;
       if (!*msgid) {
         fprintf(stderr, "Message ID can not be NULL");
@@ -403,52 +402,6 @@ class i18nVisitor : public clang::RecursiveASTVisitor<i18nVisitor> {
       clang::DiagnosticsEngine::Error, "End of string occured before beginning of string");
 };
 
-void print_results_and_comments(
-    llvm::MutableArrayRef<std::pair<SourceLocation, client::ast::Message>> messages,
-    llvm::MutableArrayRef<std::pair<SourceLocation, clang::RawComment>> comments, StringRef file,
-    const SourceManager &sm, clang::DiagnosticsEngine &diag) {
-  auto comments_iter      = comments.begin();
-  const auto comments_end = comments.end();
-  std::stable_sort(comments_iter, comments_end, compare_first);
-  auto messages_iter      = messages.begin();
-  const auto messages_end = messages.end();
-  std::stable_sort(messages_iter, messages_end, compare_first);
-
-  StringRef outputFile;
-  if (file == "-") {
-    // TODO: Print error since we have no place to write our output
-    return;
-  } else {
-    clang::SmallString<128> buffer = file;
-    llvm::sys::path::replace_extension(buffer, "poc");
-    outputFile = buffer;
-  }
-  std::ofstream stream(outputFile.str().c_str());
-
-  /*
-  for (; messages_end != messages_iter; ++messages_iter) {
-    auto reference = messages_iter->second.comments.back();
-    messages_iter->second.comments.pop_back();
-    auto [iter, after] = std::equal_range(comments_iter, comments_end,
-                                          *messages_iter, compare_first);
-    if (iter != after) {
-      auto comment_text = iter->second.getFormattedText(sm, diag);
-      llvm::SmallVector<StringRef> lines;
-      StringRef(comment_text).split(lines, '\n');
-      for (auto line : lines) {
-        messages_iter->second.comments.push_back(
-            {{}, client::ast::Comment::Kind::Extracted, line.str()});
-      }
-    }
-    comments_iter = after;
-    messages_iter->second.comments.push_back(reference);
-    messages_iter->second.translation.resize(messages_iter->second.plural ? 2
-                                                                          : 1);
-    stream << messages_iter->second;
-  }
-  */
-}
-
 class SemaConsumer : public clang::SemaConsumer {
  protected:
   clang::Sema *sema;
@@ -490,10 +443,10 @@ class i18nConsumer : public SemaConsumer {
       if (match_domain(entry->first)) {
         auto [iter, after] = std::equal_range(comments_iter, comments_end,
                                               std::make_pair(location, std::ignore), compare_first);
-        std::optional<std::string> comments;
-        if (iter != after) { comments = iter->second.getFormattedText(sm, diag); }
+        std::optional<std::string> combined;
+        if (iter != after) { combined = iter->second.getFormattedText(sm, diag); }
         entry->second.extractedComments.emplace_back(
-            locToString(location, context.getSourceManager()), comments);
+            locToString(location, context.getSourceManager()), combined);
       }
 
     clang::SmallString<128> outputFile = main_file->getName();
@@ -524,7 +477,7 @@ class i18nConsumer : public SemaConsumer {
 class i18nAction : public clang::PluginASTAction {
  public:
   std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(clang::CompilerInstance &ci,
-                                                        StringRef file) override {
+                                                        StringRef) override {
     return std::make_unique<i18nConsumer>(ci, domain_filter, empty_domain);
   }
 
@@ -533,7 +486,7 @@ class i18nAction : public clang::PluginASTAction {
   // Begin/EndSourceFileAction, but they don't work for plugins.
   /* bool BeginSourceFileAction(clang::CompilerInstance &) override {} */
   /* void EndSourceFileAction() override {} */
-  bool ParseArgs(const clang::CompilerInstance &ci, const std::vector<std::string> &args) override {
+  bool ParseArgs(const clang::CompilerInstance &, const std::vector<std::string> &args) override {
     for (llvm::StringRef arg : args) {
       if (arg == "nodomain") {
         if (empty_domain) std::cerr << "Duplicate nodomain option ignored\n";
@@ -549,11 +502,10 @@ class i18nAction : public clang::PluginASTAction {
     return true;
   }
   PluginASTAction::ActionType getActionType() override { return AddAfterMainAction; }
-  clang::CompilerInstance *ci;
 
  private:
   optional<llvm::StringRef> domain_filter;
-  bool empty_domain;
+  bool empty_domain = false;
 };
 
 } // namespace

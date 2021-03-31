@@ -100,5 +100,5 @@ std::vector<Message> client::ast::merge_messages(std::vector<Message> messages) 
   combine_elements(messages);
   merge_msg(messages);
   postsort_msgs(messages);
-  return std::move(messages);
+  return messages;
 }
