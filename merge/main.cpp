@@ -1,5 +1,5 @@
-#include "../common/ast.hpp"
 #include "config.hpp"
+#include "merge.hpp"
 #include "messages.hpp"
 
 #include <ctime>
@@ -23,6 +23,7 @@ int main(int argc, char const *argv[]) {
   std::string_view package   = "PACKAGE";
   std::string_view version   = "VERSION";
   std::string_view bugs_addr = "";
+  std::unique_ptr<std::ostream> out_file;
   std::string timestamp(21, '\0');
   {
     std::time_t now = std::time(nullptr);
@@ -44,6 +45,8 @@ int main(int argc, char const *argv[]) {
       version = arg.substr(10);
     else if (arg.starts_with("--msgid-bugs-address="))
       bugs_addr = arg.substr(21);
+    else if (arg.starts_with("--output="))
+      out_file = std::make_unique<std::ofstream>(arg.substr(9).data());
     else
       std::cerr << "Ignoring unknown option " << arg << '\n';
   }
@@ -66,8 +69,9 @@ int main(int argc, char const *argv[]) {
       messages.push_back(std::move(message));
     }
   }
-  messages = client::ast::merge_messages(std::move(messages));
-  std::cout << fmt::format(
+  messages             = client::ast::merge_messages(std::move(messages));
+  std::ostream &stream = out_file ? *out_file : std::cout;
+  stream << fmt::format(
       R"(# SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR {0}
 # This file is distributed under the same license as the {1} package.
@@ -89,6 +93,6 @@ msgstr ""
 )",
       copyright, package, version, bugs_addr, timestamp);
   for (auto &&msg : messages)
-    std::cout << '\n' << msg;
+    stream << '\n' << msg;
   return errs;
 }

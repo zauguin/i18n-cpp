@@ -34,6 +34,4 @@ struct Message: position_tagged {
 std::ostream &operator <<(std::ostream&, const Comment&);
 std::ostream &operator <<(std::ostream&, const Message&);
 
-std::vector<client::ast::Message> merge_messages(std::vector<client::ast::Message> messages);
-
 }

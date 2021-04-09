@@ -1,0 +1,84 @@
+#include <compare>
+#include <i18n.hpp>
+#include <initializer_list>
+#include <iostream>
+#include <random>
+
+extern "C" {
+[[mfk::i18n]] extern char *gettext([[mfk::i18n_singular_begin]] const char *);
+[[mfk::i18n]] extern char *dgettext([[mfk::i18n_domain_begin]] const char *,
+                                    [[mfk::i18n_singular_begin]] const char *);
+[[mfk::i18n]] extern char *ngettext([[mfk::i18n_singular_begin]] const char *,
+                                    [[mfk::i18n_plural_begin]] const char *, unsigned long);
+[[mfk::i18n]] extern char *dngettext([[mfk::i18n_domain_begin]] const char *,
+                                     [[mfk::i18n_singular_begin]] const char *,
+                                     [[mfk::i18n_plural_begin]] const char *, unsigned long);
+}
+
+class dev_seed {
+ public:
+  using result_type = std::uint32_t;
+
+ private:
+  std::random_device rddev;
+  std::uniform_int_distribution<result_type> dist;
+
+ public:
+  dev_seed() = default;
+  template <typename Iter>
+  dev_seed(Iter, Iter) {}
+  dev_seed(std::initializer_list<result_type>) {}
+  template <typename Iter>
+  void generate(Iter begin, const Iter end) {
+    while (begin != end)
+      *begin++ = dist(rddev);
+  }
+  std::size_t size() const { return 0; }
+  template <typename Iter>
+  void param(Iter) const {}
+};
+
+template <mfk::i18n::CompileTimeString str>
+[[mfk::i18n]] auto operator""_() {
+  return mfk::i18n::build_I18NString<str>();
+  /* return mfk::i18n::build_I18NString<str, "guessinggame">(); */ // This version wouldn't need
+                                                                   // `textdomain("guessinggame")`
+}
+
+int main(int, char const *[]) {
+  std::setlocale(LC_ALL, "");
+  textdomain("guessinggame");
+  constexpr auto sing = "Welcome to the guessing game\n";
+  constexpr auto plur = "Welcome to the guessing games\n";
+  std::cout << ngettext(sing, plur, 2);
+  auto rng = []() {
+    auto seed = dev_seed();
+    return std::mt19937(seed);
+  }();
+  std::uniform_int_distribution<int> dist(1, 1023);
+  std::string answer;
+  do {
+    const auto secret_number = dist(rng);
+    for (int i = 1; true; ++i) {
+      std::cout << "Please guess a number between 1 and 1023: "_;
+      int guess;
+      std::cin >> guess;
+      if (!std::cin) return -1;
+      auto comp = guess <=> secret_number;
+      if (comp == std::strong_ordering::less)
+        std::cout << "You guessed too low\n"_;
+      else if (comp == std::strong_ordering::greater)
+        std::cout << "You guessed too high\n"_;
+      else if (comp == std::strong_ordering::equal) {
+        std::cout << "That's right! You only needed {} guess(|es) to find the number.\n"_(i);
+        break;
+      }
+    }
+    std::cout << "Do you want to play again? (yes/no) "_;
+    std::cin >> answer;
+  } while (answer == static_cast<const char *>("play again|yes"_));
+
+  if (answer != static_cast<const char *>("play again|no"_))
+    std::cerr << "ERROR: Expected \"yes\" or \"no\", but got \"{}\".\n"_(answer);
+  return 0;
+}
