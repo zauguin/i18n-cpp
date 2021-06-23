@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <concepts>
 #include <cstdint>
 
 namespace mfk::i18n {
@@ -24,6 +25,7 @@ struct CompileTimeString {
   constexpr const Char *begin() const { return str; }
   constexpr Char *end() { return str + Length; }
   constexpr const Char *end() const { return str + Length; }
+  constexpr explicit operator bool() const { return true; }
 
   using char_type                     = Char;
   Char str[Length + 1]                = {0};
@@ -40,6 +42,7 @@ struct CompileTimeString<Char, std::size_t(-1)> {
   constexpr const Char *begin() const { return nullptr; }
   constexpr Char *end() { return nullptr; }
   constexpr const Char *end() const { return nullptr; }
+  constexpr explicit operator bool() const { return false; }
 
   using char_type                     = Char;
   static constexpr std::size_t length = -1;
@@ -51,13 +54,14 @@ CompileTimeString(const Char (&)[Length]) -> CompileTimeString<Char, Length - 1>
 
 namespace detail {
 // If one string does not exists, return the other (with no separator)
-template <typename Char, std::size_t Length1, std::size_t Length2>
-constexpr CompileTimeString<Char, Length1 + 1 + Length2>
-join_with_separator(CompileTimeString<Char, Length1> str1, Char sep,
-                    CompileTimeString<Char, Length2> str2) {
-  if constexpr (Length1 == -1) return str2;
-  if constexpr (Length2 == -1) return str1;
-  CompileTimeString<Char, Length1 + 1 + Length2> result;
+// Char1 == Char2, but using a single template argument would lead to issues during overload
+// resolution
+template <typename Char1, typename Char2, std::size_t Length1, std::size_t Length2>
+requires(std::same_as<Char1, Char2> &&Length1 != -1 && Length2 != -1) constexpr CompileTimeString<
+    Char1, Length1 + 1 + Length2> join_with_separator(CompileTimeString<Char1, Length1> str1,
+                                                      Char1 sep,
+                                                      CompileTimeString<Char2, Length2> str2) {
+  CompileTimeString<Char1, Length1 + 1 + Length2> result;
   auto result_iter = std::copy(str1.begin(), str1.end(), result.begin());
   *result_iter++   = sep;
   result_iter      = std::copy(str2.begin(), str2.end(), result_iter);
@@ -65,46 +69,55 @@ join_with_separator(CompileTimeString<Char, Length1> str1, Char sep,
   /* assert(result_iter == result.end()); */
   return result;
 }
+template <typename Char1, typename Char2, std::size_t Length1>
+constexpr CompileTimeString<Char1, Length1>
+join_with_separator(CompileTimeString<Char1, Length1> str1, Char1,
+                    CompileTimeString<Char2, std::size_t(-1)>) {
+  return str1;
+}
+template <typename Char1, typename Char2, std::size_t Length2>
+constexpr CompileTimeString<Char2, Length2>
+join_with_separator(CompileTimeString<Char1, std::size_t(-1)>, Char2,
+                    CompileTimeString<Char2, Length2> str2) {
+  return str2;
+}
 
 } // namespace detail
 
-template <CompileTimeString Domain = CompileTimeString<char, std::size_t(-1)>()>
-class I18NString;
-template <CompileTimeString Domain = CompileTimeString<char, std::size_t(-1)>()>
-class I18NPluralString;
-
-template <CompileTimeString Domain, CompileTimeString Context, CompileTimeString Msgid,
+template <CompileTimeString Domain, CompileTimeString Context, CompileTimeString Singular,
           CompileTimeString Plural>
-class [[mfk::i18n]] CompileTimeI18NString :
-    public std::conditional_t<Plural.length == -1, I18NString<Domain>, I18NPluralString<Domain>> {
-  using Base =
-      std::conditional_t<Plural.length == -1, I18NString<Domain>, I18NPluralString<Domain>>;
-  static_assert(Msgid.length != -1, "Singular string required");
-  static constexpr auto idStorage =
-      detail::join_with_separator(detail::join_with_separator(Context, '\4', Msgid), '\0', Plural);
-
+class [[mfk::i18n]] CompileTimeI18NString {
  public:
-  constexpr CompileTimeI18NString() requires(Plural.length == -1):
-      Base(idStorage.begin(), singular_begin) {}
-  constexpr CompileTimeI18NString() requires(Plural.length != -1):
-      Base(idStorage.begin(), singular_begin, plural_begin) {}
+  using char_type = typename decltype(Singular)::char_type;
+  static_assert(Context.length == -1
+                || std::is_same_v<typename decltype(Context)::char_type, char_type>);
+  static_assert(Plural.length == -1
+                || std::is_same_v<typename decltype(Plural)::char_type, char_type>);
+  static_assert(Singular.length != -1, "Singular string required");
+
+  static constexpr auto domain() { return domain_begin; }
+  static constexpr auto msgid() { return idStorage.begin(); }
+  static constexpr auto singular() { return singular_begin; }
+  static constexpr auto plural() { return plural_begin; }
 
  private:
-  static constexpr const char *domain_begin [[mfk::i18n_domain_begin]] =
-      Domain.length == -1 ? nullptr : Domain.str;
-  static constexpr const char *domain_end [[mfk::i18n_domain_end]] =
+  static constexpr auto idStorage = detail::join_with_separator(
+      detail::join_with_separator(Context, char_type('\4'), Singular), char_type('\0'), Plural);
+  static constexpr auto domain_begin [[mfk::i18n_domain_begin]] =
+      Domain.length == -1 ? nullptr : Domain.begin();
+  static constexpr auto domain_end [[mfk::i18n_domain_end]] =
       domain_begin ? domain_begin + Domain.length : nullptr;
-  static constexpr const char *context_begin [[mfk::i18n_context_begin]] =
-      Context.length == -1 ? nullptr : idStorage.str;
-  static constexpr const char *context_end [[mfk::i18n_context_end]] =
+  static constexpr const char_type *context_begin [[mfk::i18n_context_begin]] =
+      Context.length == -1 ? nullptr : idStorage.begin();
+  static constexpr const char_type *context_end [[mfk::i18n_context_end]] =
       context_begin ? context_begin + Context.length : nullptr;
-  static constexpr const char *singular_begin [[mfk::i18n_singular_begin]] =
-      idStorage.str + (Context.length + 1); // context_end+1 or idStorage.str
-  static constexpr const char *singular_end [[mfk::i18n_singular_end]] =
-      singular_begin + Msgid.length;
-  static constexpr const char *plural_begin [[mfk::i18n_plural_begin]] =
+  static constexpr const char_type *singular_begin [[mfk::i18n_singular_begin]] =
+      idStorage.begin() + (Context.length + 1); // context_end+1 or idStorage.begin()
+  static constexpr const char_type *singular_end [[mfk::i18n_singular_end]] =
+      singular_begin + Singular.length;
+  static constexpr const char_type *plural_begin [[mfk::i18n_plural_begin]] =
       Plural.length == -1 ? nullptr : singular_end + 1;
-  static constexpr const char *plural_end [[mfk::i18n_plural_end]] =
+  static constexpr const char_type *plural_end [[mfk::i18n_plural_end]] =
       plural_begin ? plural_begin + Plural.length : nullptr;
 };
 

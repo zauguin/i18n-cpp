@@ -2,22 +2,20 @@
 
 #include "../common/ast.hpp"
 
+#include <algorithm>
 #include <clang/AST/ASTConsumer.h>
 #include <clang/AST/ASTContext.h>
 #include <clang/AST/Decl.h>
-#include <clang/AST/DeclTemplate.h>
+#include <clang/AST/DeclCXX.h>
 #include <clang/AST/Expr.h>
 #include <clang/AST/RawCommentList.h>
 #include <clang/AST/RecursiveASTVisitor.h>
-#include <clang/ASTMatchers/ASTMatchFinder.h>
-#include <clang/ASTMatchers/ASTMatchers.h>
+#include <clang/AST/Type.h>
 #include <clang/Basic/Diagnostic.h>
-#include <clang/Basic/LLVM.h>
 #include <clang/Basic/LangOptions.h>
 #include <clang/Basic/SourceLocation.h>
 #include <clang/Basic/SourceManager.h>
 #include <clang/Frontend/CompilerInstance.h>
-#include <clang/Frontend/FrontendAction.h>
 #include <clang/Lex/Preprocessor.h>
 #include <clang/Sema/Sema.h>
 #include <clang/Sema/SemaConsumer.h>
@@ -26,7 +24,7 @@
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/ADT/StringRef.h>
 #include <optional>
-#include <string_view>
+#include <utility>
 
 namespace {
 
@@ -105,8 +103,10 @@ auto compare_first = [](const auto &a, const auto &b) { return a.first < b.first
 
 class CommentHandler : public clang::CommentHandler {
  public:
-  CommentHandler(llvm::SmallVectorImpl<std::pair<SourceLocation, clang::RawComment>> &comments):
-      comments(&comments) {}
+  CommentHandler(llvm::SmallVectorImpl<std::pair<SourceLocation, clang::RawComment>> &comments,
+                 optional<std::string> filter):
+      comments(&comments),
+      filter(std::move(filter)) {}
 
  private:
   llvm::SmallVectorImpl<std::pair<SourceLocation, clang::RawComment>> *comments;
@@ -122,10 +122,9 @@ class CommentHandler : public clang::CommentHandler {
       return false;
     }
 
-    if (previous.isInvalid()) {
-      // TODO: Check for configurable marker
-      bool marker_is_set = true;
-      if (!marker_is_set) return false;
+    if (previous.isInvalid() && filter) {
+      auto text = raw_comment.getFormattedText(sm, preprocessor.getDiagnostics());
+      if (!StringRef(text).ltrim().startswith(*filter)) return false;
     }
 
     clang::Token tok;
@@ -151,6 +150,7 @@ class CommentHandler : public clang::CommentHandler {
 
  private:
   SourceLocation previous;
+  optional<std::string> filter;
 };
 
 class i18nVisitor : public clang::RecursiveASTVisitor<i18nVisitor> {
@@ -158,10 +158,12 @@ class i18nVisitor : public clang::RecursiveASTVisitor<i18nVisitor> {
   using Entry = std::pair<std::optional<std::string>, client::ast::Message>;
   llvm::StringMap<Entry> entries;
 
-  i18nVisitor(clang::Sema &sema_, clang::ASTContext &ctxt): sema(&sema_), context(&ctxt) {}
+  i18nVisitor(clang::Sema &sema_, clang::ASTContext &ctxt): sema(sema_), context(&ctxt) {}
 
   bool VisitRecordDecl(clang::RecordDecl *record) {
-    if (record->isTemplated()) return true;
+    // We only accept the attribute for the definition. (This ensures that we can look at the fields
+    // without trouble)
+    if (record->isTemplated() || !record->isCompleteDefinition()) return true;
 
     for (auto *attr : record->specific_attrs<clang::AnnotateAttr>()) {
       if (attr->getAnnotation() == "mfk::i18n") {
@@ -171,30 +173,35 @@ class i18nVisitor : public clang::RecursiveASTVisitor<i18nVisitor> {
         for (auto *field : record->decls())
           if (auto *var = dyn_cast<clang::VarDecl>(field))
             for (auto *attr : var->specific_attrs<clang::AnnotateAttr>()) {
-              if (attr->getAnnotation() == "mfk::i18n::context::begin")
-                begin_context = var;
-              else if (attr->getAnnotation() == "mfk::i18n::context::end")
-                end_context = var;
-              else if (attr->getAnnotation() == "mfk::i18n::singular::begin")
-                begin_msgid = var;
-              else if (attr->getAnnotation() == "mfk::i18n::singular::end")
-                end_msgid = var;
-              else if (attr->getAnnotation() == "mfk::i18n::plural::begin")
-                begin_plural = var;
-              else if (attr->getAnnotation() == "mfk::i18n::plural::end")
-                end_plural = var;
-              else if (attr->getAnnotation() == "mfk::i18n::domain::begin")
-                begin_domain = var;
-              else if (attr->getAnnotation() == "mfk::i18n::domain::end")
-                end_domain = var;
-              else
-                continue;
-              break;
+              auto annot = attr->getAnnotation();
+              if (annot.consume_front("mfk::i18n::")) {
+                if (annot == "context::begin")
+                  begin_context = var;
+                else if (annot == "context::end")
+                  end_context = var;
+                else if (annot == "singular::begin")
+                  begin_msgid = var;
+                else if (annot == "singular::end")
+                  end_msgid = var;
+                else if (annot == "plural::begin")
+                  begin_plural = var;
+                else if (annot == "plural::end")
+                  end_plural = var;
+                else if (annot == "domain::begin")
+                  begin_domain = var;
+                else if (annot == "domain::end")
+                  end_domain = var;
+                else {
+                  printf("Unexpected i18n scoped annotation, skipping function\n");
+                  return true;
+                }
+                break;
+              }
             }
-        optional<std::optional<std::string>> msgid   = extract_string(begin_msgid, end_msgid),
-                                             context = extract_string(begin_context, end_context),
-                                             domain  = extract_string(begin_domain, end_domain),
-                                             plural  = extract_string(begin_plural, end_plural);
+        auto msgid   = extract_string(begin_msgid, end_msgid),
+             context = extract_string(begin_context, end_context),
+             domain  = extract_string(begin_domain, end_domain),
+             plural  = extract_string(begin_plural, end_plural);
         if (!domain || !context || !msgid || !plural) return true;
         if (!*msgid) {
           printf("msgid can not be NULL\n");
@@ -202,9 +209,23 @@ class i18nVisitor : public clang::RecursiveASTVisitor<i18nVisitor> {
         }
         types.insert({record->getTypeForDecl()->getUnqualifiedDesugaredType(),
                       &addEntry(*domain, *context, **msgid, *plural)});
-        break;
+        return true;
       }
     }
+
+    // We only reach this point if the class does not have the attribute. But maybe a base class was
+    // marked?
+    if (auto *cxx_record = dyn_cast<clang::CXXRecordDecl>(record)) {
+      for (clang::CXXBaseSpecifier &base : cxx_record->bases()) {
+        auto base_iter = types.find(base.getType().getTypePtr()->getUnqualifiedDesugaredType());
+        if (base_iter != types.end()) {
+          types.insert(
+              {record->getTypeForDecl()->getUnqualifiedDesugaredType(), base_iter->second});
+          return true;
+        }
+      }
+    }
+
     return true;
   }
 
@@ -264,18 +285,16 @@ class i18nVisitor : public clang::RecursiveASTVisitor<i18nVisitor> {
 
     auto callee_iter_literal = literalFunctions.find(callee);
     if (callee_iter_literal != literalFunctions.end()) {
-      auto msgid = get_argument_string(call, callee_iter_literal->second.msgid);
-      if (!msgid) return true;
+      auto &indices = callee_iter_literal->second;
+      auto msgid    = get_argument_string(call, indices.msgid),
+           domain   = get_argument_string(call, indices.domain),
+           context  = get_argument_string(call, indices.context),
+           plural   = get_argument_string(call, indices.plural);
+      if (!msgid || !domain || !context || !plural) return true;
       if (!*msgid) {
         fprintf(stderr, "Message ID can not be NULL");
         return true;
       }
-      auto domain = get_argument_string(call, callee_iter_literal->second.domain);
-      if (!domain) return true;
-      auto context = get_argument_string(call, callee_iter_literal->second.context);
-      if (!context) return true;
-      auto plural = get_argument_string(call, callee_iter_literal->second.plural);
-      if (!plural) return true;
       locations.insert({locToLineBegin(call->getBeginLoc(), sm),
                         &addEntry(*domain, *context, **msgid, *plural)});
       return true;
@@ -287,6 +306,21 @@ class i18nVisitor : public clang::RecursiveASTVisitor<i18nVisitor> {
  private:
   Entry &addEntry(std::optional<std::string> domain, std::optional<std::string> context,
                   std::string msgid, std::optional<std::string> plural) {
+    // If context is present and ends with '\4' + msgid, then we strip the later part.
+    // (This is mostly to catch gettext's macro implementation for handling the context.)
+    // If no context is present but the msgid contains '\4', assume that someone tries to imlememnt
+    // contexts manually and use the first part of the msgid as context
+    if (context) {
+      auto &ctxt = *context;
+      if (ctxt.size() > msgid.size() && ctxt[ctxt.size() - msgid.size() - 1] == '\4'
+          && std::equal(ctxt.end() - msgid.size(), ctxt.end(),
+                        msgid.begin())) // ctxt.ends_with(msgid) if C++20 is available :dreamy:
+        ctxt.resize(ctxt.size() - 1 - msgid.size());
+    } else if (auto index = msgid.find_first_of('\4'); index != std::string::npos) {
+      context.emplace(msgid, 1, index);
+      msgid = msgid.substr(index + 1);
+    }
+
     auto &entry = entries[((domain ? *domain + llvm::Twine('\1') : llvm::Twine())
                            + (context ? *context + llvm::Twine('\4') : llvm::Twine()) + msgid)
                               .str()];
@@ -299,7 +333,7 @@ class i18nVisitor : public clang::RecursiveASTVisitor<i18nVisitor> {
     return entry;
   }
 
-  clang::Sema *sema;
+  clang::Sema &sema;
   clang::ASTContext *context;
   clang::DiagnosticsEngine *diag = &context->getDiagnostics();
 
@@ -325,14 +359,14 @@ class i18nVisitor : public clang::RecursiveASTVisitor<i18nVisitor> {
 
   optional<std::optional<std::string>> extract_string(clang::VarDecl *begin_decl,
                                                       clang::VarDecl *end_decl) {
-    clang::DeclRefExpr *begin_expr =
-        begin_decl ? sema->BuildDeclRefExpr(begin_decl, begin_decl->getType(), clang::VK_LValue,
-                                            SourceLocation{})
-                   : nullptr;
-    clang::DeclRefExpr *end_expr = end_decl
-                                       ? sema->BuildDeclRefExpr(end_decl, end_decl->getType(),
-                                                                clang::VK_LValue, SourceLocation{})
-                                       : nullptr;
+    clang::DeclRefExpr *begin_expr = begin_decl
+                                         ? sema.BuildDeclRefExpr(begin_decl, begin_decl->getType(),
+                                                                 clang::VK_LValue, SourceLocation{})
+                                         : nullptr;
+    clang::DeclRefExpr *end_expr   = end_decl
+                                         ? sema.BuildDeclRefExpr(end_decl, end_decl->getType(),
+                                                               clang::VK_LValue, SourceLocation{})
+                                         : nullptr;
     return extract_string(begin_expr, end_expr);
   }
   optional<std::optional<std::string>> extract_string(clang::Expr *begin_expr,
@@ -359,7 +393,7 @@ class i18nVisitor : public clang::RecursiveASTVisitor<i18nVisitor> {
     }
 
     auto subscript_expr = [&] {
-      auto expr = sema->CreateBuiltinArraySubscriptExpr(begin_expr, {}, str_index, {});
+      auto expr = sema.CreateBuiltinArraySubscriptExpr(begin_expr, {}, str_index, {});
       assert(!expr.isInvalid());
       return expr.get();
     }();
@@ -368,7 +402,7 @@ class i18nVisitor : public clang::RecursiveASTVisitor<i18nVisitor> {
     std::int64_t len;
     if (end_expr) {
       auto len_value = [&] {
-        auto expr = sema->CreateBuiltinBinOp({}, clang::BO_Sub, end_expr, begin_expr);
+        auto expr = sema.CreateBuiltinBinOp({}, clang::BO_Sub, end_expr, begin_expr);
         assert(!expr.isInvalid());
         return expr.get()->getIntegerConstantExpr(*context);
       }();
@@ -421,18 +455,20 @@ class SemaConsumer : public clang::SemaConsumer {
 class i18nConsumer : public SemaConsumer {
  private:
   clang::CompilerInstance *ci;
-  optional<llvm::StringRef> domain_filter;
+  optional<std::string> domain_filter;
   bool empty_domain;
+  optional<std::string> comment_filter;
   llvm::SmallVector<std::pair<SourceLocation, client::ast::Message>, 0> messages;
   llvm::SmallVector<std::pair<SourceLocation, clang::RawComment>, 0> comments;
 
  public:
-  CommentHandler handler{comments};
+  CommentHandler handler;
 
-  i18nConsumer(clang::CompilerInstance &ci, optional<llvm::StringRef> domain_filter,
-               bool empty_domain):
+  i18nConsumer(clang::CompilerInstance &ci, optional<std::string> domain_filter, bool empty_domain,
+               optional<std::string> comment_filter):
       ci(&ci),
-      domain_filter(domain_filter), empty_domain(empty_domain) {
+      domain_filter(std::move(domain_filter)), empty_domain(empty_domain),
+      handler(comments, std::move(comment_filter)) {
     ci.getPreprocessor().addCommentHandler(&handler);
   }
 
@@ -458,7 +494,7 @@ class i18nConsumer : public SemaConsumer {
             locToString(location, context.getSourceManager()), combined);
       }
 
-    llvm::StringRef out_file = ci->getFrontendOpts().OutputFile;
+    StringRef out_file = ci->getFrontendOpts().OutputFile;
     if (out_file.empty()) out_file = main_file->getName();
     if (out_file == "-") {
       std::cerr << "Unable to derive i18n output file name\n";
@@ -487,11 +523,11 @@ class i18nConsumer : public SemaConsumer {
 
 std::unique_ptr<clang::ASTConsumer> i18nAction::CreateASTConsumer(clang::CompilerInstance &ci,
                                                                   StringRef) {
-  return std::make_unique<i18nConsumer>(ci, domain_filter, empty_domain);
+  return std::make_unique<i18nConsumer>(ci, domain_filter, empty_domain, std::move(comment_filter));
 }
 
 bool i18nAction::ParseArgs(const std::vector<std::string> &args) {
-  for (llvm::StringRef arg : args) {
+  for (StringRef arg : args) {
     if (arg == "nodomain") {
       if (empty_domain) std::cerr << "Duplicate nodomain option ignored\n";
       empty_domain = true;
@@ -499,7 +535,12 @@ bool i18nAction::ParseArgs(const std::vector<std::string> &args) {
       if (domain_filter)
         std::cerr << "Duplicate domain option ignored\n";
       else
-        domain_filter = arg;
+        domain_filter = arg.str();
+    } else if (arg.consume_front("comment=")) {
+      if (comment_filter)
+        std::cerr << "Duplicate comment option ignored\n";
+      else
+        comment_filter = arg.str();
     } else
       std::cerr << "I hate users.\n";
   }

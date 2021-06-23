@@ -1,19 +1,10 @@
 #include <compare>
-#include <i18n.hpp>
+#include <i18n/simple.hpp>
 #include <initializer_list>
 #include <iostream>
 #include <random>
 
-extern "C" {
-[[mfk::i18n]] extern char *gettext([[mfk::i18n_singular_begin]] const char *);
-[[mfk::i18n]] extern char *dgettext([[mfk::i18n_domain_begin]] const char *,
-                                    [[mfk::i18n_singular_begin]] const char *);
-[[mfk::i18n]] extern char *ngettext([[mfk::i18n_singular_begin]] const char *,
-                                    [[mfk::i18n_plural_begin]] const char *, unsigned long);
-[[mfk::i18n]] extern char *dngettext([[mfk::i18n_domain_begin]] const char *,
-                                     [[mfk::i18n_singular_begin]] const char *,
-                                     [[mfk::i18n_plural_begin]] const char *, unsigned long);
-}
+using namespace mfk::i18n::literals;
 
 class dev_seed {
  public:
@@ -38,19 +29,11 @@ class dev_seed {
   void param(Iter) const {}
 };
 
-template <mfk::i18n::CompileTimeString str>
-[[mfk::i18n]] auto operator""_() {
-  return mfk::i18n::build_I18NString<str>();
-  /* return mfk::i18n::build_I18NString<str, "guessinggame">(); */ // This version wouldn't need
-                                                                   // `textdomain("guessinggame")`
-}
-
 int main(int, char const *[]) {
-  std::setlocale(LC_ALL, "");
+  std::locale::global(std::locale(""));
   textdomain("guessinggame");
-  constexpr auto sing = "Welcome to the guessing game\n";
-  constexpr auto plur = "Welcome to the guessing games\n";
-  std::cout << ngettext(sing, plur, 2);
+  constexpr auto welcome = "Welcome to the guessing game\n";
+  std::cout << gettext(welcome);
   auto rng = []() {
     auto seed = dev_seed();
     return std::mt19937(seed);

@@ -1,212 +1,228 @@
 #ifndef I18N_HPP
 #define I18N_HPP
 
+#include "i18n/base.hpp"
+
 #include <algorithm>
 #include <concepts>
 #include <cstdint>
 #include <libintl.h>
-/* #include <type_traits> */
-
-#include "i18n/base.hpp"
-
 #include <tuple>
+#include <type_traits>
 #include <version>
 
-#if defined(__cpp_lib_format) && __cpp_lib_format >= 201907
-  #include <format>
-namespace fmtstd = std;
-#else
+#ifndef USE_FMT
+  #if !defined(__cpp_lib_format) || __cpp_lib_format < 201907
+    #define USE_FMT 1
+  #endif
+#endif
+
+#if USE_FMT
   #include <fmt/format.h>
 namespace fmtstd = fmt;
+#else
+  #include <format>
+namespace fmtstd = std;
 #endif
 
 namespace mfk::i18n {
 
-class SmallI18NStringCrossDomain {
+namespace detail {
+template <typename Derived>
+class I18NStringImpl {
  public:
-  explicit constexpr SmallI18NStringCrossDomain(const char *domain, const char *msgid):
-      domain(domain), msgid(msgid) {}
-  operator const char *() {
-    const char *translated = dgettext(domain, msgid);
-    if (translated != msgid) return translated;
-    translated = strchr(msgid, '\4');
-    return translated ? translated + 1 : msgid;
+  operator const char *() const {
+    auto &self             = *static_cast<const Derived *>(this);
+    auto &&msgid           = self.get_msgid();
+    const char *translated = dgettext(self.get_domain(), msgid);
+    return translated != msgid ? translated : self.get_singular();
   }
-  operator std::string_view() { return static_cast<const char *>(*this); }
+  operator std::string_view() const { return static_cast<const char *>(*this); }
 
   template <typename... Args>
-  auto operator()(Args &&...args) {
+  decltype(auto) operator()(Args &&...args) const {
     return fmtstd::format(std::string_view(*this), std::forward<Args>(args)...);
   }
 
  protected:
+  constexpr auto get_singular() const {
+    const char *msgid = static_cast<const Derived *>(this)->get_msgid();
+    auto singular     = strchr(msgid, '\4');
+    return singular ? singular + 1 : msgid;
+  }
+};
+
+template <typename Derived>
+class I18NPluralStringImpl {
+ public:
+  const char *operator[](unsigned long n) {
+    auto &self             = *static_cast<const Derived *>(this);
+    auto &&msgid           = self.get_msgid();
+    const char *translated = dngettext(self.get_domain(), msgid, self.get_plural(), n);
+    return translated != msgid ? translated : self.get_singular();
+  }
+
+  template <std::convertible_to<unsigned long> First, typename... Args>
+  decltype(auto) operator()(First &&first, Args &&...args) {
+    return fmtstd::format((*this)[first], std::forward<First>(first), std::forward<Args>(args)...);
+  }
+
+ protected:
+  constexpr auto get_singular() const {
+    const char *msgid = static_cast<const Derived *>(this)->get_msgid();
+    auto singular     = strchr(msgid, '\4');
+    return singular ? singular + 1 : msgid;
+  }
+  constexpr auto get_plural() const {
+    const char *msgid = static_cast<const Derived *>(this)->get_msgid();
+    return msgid + std::strlen(msgid) + 1;
+  }
+};
+} // namespace detail
+
+class SmallI18NStringCrossDomain : public detail::I18NStringImpl<SmallI18NStringCrossDomain> {
+  friend class I18NStringImpl;
+
+ public:
+  explicit constexpr SmallI18NStringCrossDomain(const char *domain, const char *msgid):
+      domain(domain), msgid(msgid) {}
+
+ protected:
+  constexpr auto get_domain() const { return domain; }
+  constexpr auto get_msgid() const { return msgid; }
+
   const char *domain;
   const char *msgid;
 };
 
-class I18NStringCrossDomain : public SmallI18NStringCrossDomain {
+class I18NStringCrossDomain :
+    public SmallI18NStringCrossDomain,
+    public detail::I18NStringImpl<I18NStringCrossDomain> {
+  using I18NStringImpl = detail::I18NStringImpl<I18NStringCrossDomain>;
+  friend I18NStringImpl;
+
  public:
   explicit constexpr I18NStringCrossDomain(const char *domain, const char *msgid,
                                            const char *singular):
       SmallI18NStringCrossDomain(domain, msgid),
       singular(singular) {}
-  operator const char *() {
-    const char *translated = dgettext(domain, msgid);
-    return translated == msgid ? singular : translated;
-  }
-  operator std::string_view() { return static_cast<const char *>(*this); }
-
-  template <typename... Args>
-  auto operator()(Args &&...args) {
-    return fmtstd::format(std::string_view(*this), std::forward<Args>(args)...);
-  }
+  using I18NStringImpl::operator const char *, I18NStringImpl::operator std::string_view,
+      I18NStringImpl::operator();
 
  protected:
+  constexpr auto get_singular() const { return singular; }
   const char *singular;
 };
 
 template <CompileTimeString Domain>
-class SmallI18NString {
+class SmallI18NString : public detail::I18NStringImpl<SmallI18NString<Domain>> {
+  friend detail::I18NStringImpl<SmallI18NString>;
+
  public:
   explicit constexpr SmallI18NString(const char *msgid): msgid(msgid) {}
-  operator SmallI18NStringCrossDomain() {
+  constexpr operator SmallI18NStringCrossDomain() const {
     return SmallI18NStringCrossDomain(Domain.begin(), msgid);
-  }
-  operator const char *() {
-    if constexpr (Domain.length == -1) {
-      const char *translated = gettext(msgid);
-      if (translated != msgid) return translated;
-      translated = strchr(msgid, '\4');
-      return translated ? translated + 1 : msgid;
-    } else
-      return SmallI18NStringCrossDomain(*this);
-  }
-
-  template <typename... Args>
-  auto operator()(Args &&...args) {
-    return fmtstd::format(std::string_view(*this), std::forward<Args>(args)...);
   }
 
  protected:
+  constexpr auto get_domain() const { return Domain.begin(); }
+  constexpr auto get_msgid() const { return msgid; }
+
   const char *msgid;
 };
 
 template <CompileTimeString Domain>
-class I18NString : public SmallI18NString<Domain> {
+class I18NString :
+    public SmallI18NString<Domain>,
+    public detail::I18NStringImpl<I18NString<Domain>> {
+  using I18NStringImpl = detail::I18NStringImpl<I18NString>;
+  friend I18NStringImpl;
+
  public:
   explicit constexpr I18NString(const char *msgid, const char *singular):
       SmallI18NString<Domain>(msgid), singular(singular) {}
-  operator I18NStringCrossDomain() {
+  constexpr operator I18NStringCrossDomain() const {
     return I18NStringCrossDomain(Domain.begin(), this->msgid, singular);
   }
-  operator const char *() {
-    if constexpr (Domain.length == -1) {
-      const char *translated = gettext(this->msgid);
-      return translated == this->msgid ? singular : translated;
-    } else
-      return I18NStringCrossDomain(*this);
-  }
-  operator std::string_view() { return static_cast<const char *>(*this); }
-
-  template <typename... Args>
-  auto operator()(Args &&...args) {
-    return fmtstd::format(std::string_view(*this), std::forward<Args>(args)...);
-  }
+  using I18NStringImpl::operator const char *, I18NStringImpl::operator std::string_view,
+      I18NStringImpl::operator();
 
  protected:
+  constexpr auto get_singular() const { return singular; }
   const char *singular;
 };
 
-class SmallI18NPluralStringCrossDomain {
+class SmallI18NPluralStringCrossDomain :
+    public detail::I18NPluralStringImpl<SmallI18NPluralStringCrossDomain> {
+  friend class I18NPluralStringImpl;
+
  public:
   explicit constexpr SmallI18NPluralStringCrossDomain(const char *domain, const char *msgid):
       domain(domain), msgid(msgid) {}
-  const char *operator[](unsigned long n) {
-    const char *translated = dngettext(domain, msgid, msgid + std::strlen(msgid) + 1, n);
-    if (translated != msgid) return translated;
-    translated = strchr(msgid, '\4');
-    return translated ? translated + 1 : msgid;
-  }
-
-  template <std::convertible_to<unsigned long> First, typename... Args>
-  auto operator()(First &&first, Args &&...args) {
-    return fmtstd::format((*this)[first], std::forward<First>(first), std::forward<Args>(args)...);
-  }
 
  protected:
+  constexpr auto get_domain() const { return domain; }
+  constexpr auto get_msgid() const { return msgid; }
+
   const char *domain;
   const char *msgid;
 };
 
-class I18NPluralStringCrossDomain : public SmallI18NPluralStringCrossDomain {
+class I18NPluralStringCrossDomain :
+    public SmallI18NPluralStringCrossDomain,
+    public detail::I18NPluralStringImpl<I18NPluralStringCrossDomain> {
+  using I18NPluralStringImpl = detail::I18NPluralStringImpl<I18NPluralStringCrossDomain>;
+  friend I18NPluralStringImpl;
+
  public:
   explicit constexpr I18NPluralStringCrossDomain(const char *domain, const char *msgid,
                                                  const char *singular, const char *plural):
       SmallI18NPluralStringCrossDomain(domain, msgid),
       singular(singular), plural(plural) {}
-  const char *operator[](unsigned long n) {
-    const char *translated = dngettext(domain, msgid, plural, n);
-    return translated == msgid ? singular : translated;
-  }
-
-  template <std::convertible_to<unsigned long> First, typename... Args>
-  auto operator()(First &&first, Args &&...args) {
-    return fmtstd::format((*this)[first], std::forward<First>(first), std::forward<Args>(args)...);
-  }
+  using I18NPluralStringImpl::operator[], I18NPluralStringImpl::operator();
 
  protected:
+  constexpr auto get_singular() const { return singular; }
+  constexpr auto get_plural() const { return plural; }
   const char *singular;
   const char *plural;
 };
 
 template <CompileTimeString Domain>
-class SmallI18NPluralString {
+class SmallI18NPluralString : public detail::I18NPluralStringImpl<SmallI18NPluralString<Domain>> {
+  friend detail::I18NPluralStringImpl<SmallI18NPluralString>;
+
  public:
   explicit constexpr SmallI18NPluralString(const char *msgid): msgid(msgid) {}
-  operator SmallI18NPluralStringCrossDomain() {
+  constexpr operator SmallI18NPluralStringCrossDomain() const {
     return SmallI18NPluralStringCrossDomain(Domain.begin(), msgid);
-  }
-  const char *operator[](unsigned long n) {
-    if constexpr (Domain.length == -1) {
-      const char *translated = ngettext(msgid, msgid + std::strlen(msgid) + 1, n);
-      if (translated != msgid) return translated;
-      translated = strchr(msgid, '\4');
-      return translated ? translated + 1 : msgid;
-    } else
-      return SmallI18NPluralStringCrossDomain(*this)[n];
-  }
-
-  template <std::convertible_to<unsigned long> First, typename... Args>
-  auto operator()(First &&first, Args &&...args) {
-    return fmtstd::format((*this)[first], std::forward<First>(first), std::forward<Args>(args)...);
   }
 
  protected:
+  constexpr auto get_domain() const { return Domain.begin(); }
+  constexpr auto get_msgid() const { return msgid; }
+
   const char *msgid;
 };
 
 template <CompileTimeString Domain>
-class I18NPluralString : public SmallI18NPluralString<Domain> {
+class I18NPluralString :
+    public SmallI18NPluralString<Domain>,
+    public detail::I18NPluralStringImpl<I18NPluralString<Domain>> {
+  using I18NPluralStringImpl = detail::I18NPluralStringImpl<I18NPluralString>;
+  friend I18NPluralStringImpl;
+
  public:
   explicit constexpr I18NPluralString(const char *msgid, const char *singular, const char *plural):
       SmallI18NPluralString<Domain>(msgid), singular(singular), plural(plural) {}
-  operator I18NPluralStringCrossDomain() {
-    return I18NPluralStringCrossDomain(Domain.begin(), this->msgid, singular, plural);
+  constexpr operator I18NPluralStringCrossDomain() const {
+    return I18NPluralStringCrossDomain(Domain.begin(), this->msgid, singular, this->plural);
   }
-  const char *operator[](unsigned long n) {
-    if constexpr (Domain.length == -1) {
-      const char *translated = ngettext(this->msgid, plural, n);
-      return translated == this->msgid ? singular : translated;
-    } else
-      return I18NPluralStringCrossDomain(*this)[n];
-  }
-
-  template <std::convertible_to<unsigned long> First, typename... Args>
-  auto operator()(First &&first, Args &&...args) {
-    return fmtstd::format((*this)[first], std::forward<First>(first), std::forward<Args>(args)...);
-  }
+  using I18NPluralStringImpl::operator[], I18NPluralStringImpl::operator();
 
  protected:
+  constexpr auto get_singular() const { return singular; }
+  constexpr auto get_plural() const { return plural; }
   const char *singular;
   const char *plural;
 };
@@ -372,16 +388,41 @@ constexpr std::tuple<std::size_t, std::size_t> measure_singular_plural(const Cha
   return std::make_tuple(singular, has_plural ? plural : std::size_t(-1));
 }
 
+template <CompileTimeString Domain, CompileTimeString Context, CompileTimeString Singular,
+          CompileTimeString Plural>
+struct MyI18NString :
+    private CompileTimeI18NString<Domain, Context, Singular, Plural>,
+    public std::conditional_t<!!Plural, I18NPluralString<Domain>, I18NString<Domain>> {
+ private:
+  using CTS = typename MyI18NString::CompileTimeI18NString;
+
+ public:
+  constexpr MyI18NString() requires(!!Plural):
+      MyI18NString::I18NPluralString(CTS::msgid(), CTS::singular(), CTS::plural()) {}
+  constexpr MyI18NString() requires(!Plural):
+      MyI18NString::I18NString(CTS::msgid(), CTS::singular()) {}
+#if USE_FMT
+  template <typename... Args>
+  decltype(auto) operator()(Args &&...args) {
+    fmt::detail::check_format_string<Args...>(FMT_STRING(Singular.str));
+    if constexpr (Plural)
+      return MyI18NString::I18NPluralString::operator()(std::forward<Args>(args)...);
+    else
+      return MyI18NString::I18NString::operator()(std::forward<Args>(args)...);
+  }
+#endif
+};
 } // namespace detail
 
 template <CompileTimeString Str, CompileTimeString Domain = CompileTimeString<
                                      typename decltype(Str)::char_type, std::size_t(-1)>()>
 constexpr auto build_I18NString() {
+  using char_type = typename decltype(Str)::char_type;
   // We are working in two steps:
   constexpr auto lengths = [] {
     struct {
       std::size_t context = -1, singular = 0, plural = -1;
-      const char *start_main;
+      const char_type *start_main;
     } result;
     std::tie(result.start_main, result.context) = detail::measure_context(Str.begin(), Str.end());
     std::tie(result.singular, result.plural) =
@@ -390,20 +431,20 @@ constexpr auto build_I18NString() {
   }();
 
   struct TripleString {
-    CompileTimeString<char, lengths.context> context;
-    CompileTimeString<char, lengths.singular> singular;
-    CompileTimeString<char, lengths.plural> plural;
+    CompileTimeString<char_type, lengths.context> context;
+    CompileTimeString<char_type, lengths.singular> singular;
+    CompileTimeString<char_type, lengths.plural> plural;
   };
   constexpr TripleString strings = [&] {
     TripleString result{};
-    result.context = detail::extract_context<char, lengths.context>(Str.begin());
+    result.context = detail::extract_context<char_type, lengths.context>(Str.begin());
     std::tie(result.singular, result.plural) =
         detail::extract_singular_plural<lengths.singular, lengths.plural>(lengths.start_main,
                                                                           Str.end());
     return result;
   }();
 
-  return CompileTimeI18NString<Domain, strings.context, strings.singular, strings.plural>();
+  return detail::MyI18NString<Domain, strings.context, strings.singular, strings.plural>();
 }
 
 } // namespace mfk::i18n
