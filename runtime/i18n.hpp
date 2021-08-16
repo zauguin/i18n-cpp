@@ -41,7 +41,7 @@ class I18NStringImpl {
 
   template <typename... Args>
   decltype(auto) operator()(Args &&...args) const {
-    return fmtstd::format(std::string_view(*this), std::forward<Args>(args)...);
+    return fmtstd::vformat(std::string_view(*this), fmtstd::make_format_args(std::forward<Args>(args)...));
   }
 
  protected:
@@ -64,7 +64,7 @@ class I18NPluralStringImpl {
 
   template <std::convertible_to<unsigned long> First, typename... Args>
   decltype(auto) operator()(First &&first, Args &&...args) {
-    return fmtstd::format((*this)[first], std::forward<First>(first), std::forward<Args>(args)...);
+    return fmtstd::vformat((*this)[first], fmtstd::make_format_args(std::forward<First>(first), std::forward<Args>(args)...));
   }
 
  protected:
@@ -404,7 +404,11 @@ struct MyI18NString :
 #if USE_FMT
   template <typename... Args>
   decltype(auto) operator()(Args &&...args) {
-    fmt::detail::check_format_string<Args...>(FMT_STRING(Singular.str));
+    if (false) {
+      fmtstd::format(Singular.str, std::forward<Args>(args)...);
+      if constexpr (Plural)
+        fmtstd::format(Plural.str, std::forward<Args>(args)...);
+    }
     if constexpr (Plural)
       return MyI18NString::I18NPluralString::operator()(std::forward<Args>(args)...);
     else
