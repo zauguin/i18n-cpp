@@ -1,2 +1,5 @@
+/build
+/compile_commands.json
+/Testing
 *.d
 *.o

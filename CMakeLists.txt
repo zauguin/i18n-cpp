@@ -7,7 +7,10 @@ project(i18n++
 
 set(CMAKE_CXX_EXTENSIONS off)
 
+include(CTest)
+
 add_subdirectory(external)
 add_subdirectory(merge)
 add_subdirectory(clang)
 add_subdirectory(example)
+add_subdirectory(tests)
