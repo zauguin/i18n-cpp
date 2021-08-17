@@ -17,33 +17,37 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: tests/simple.cpp:13 tests/simple.cpp:41
+#: tests/simple.cpp:13 tests/simple.cpp:42
 msgid "Hello world!"
 msgstr ""
 
-#: tests/simple.cpp:17 tests/simple.cpp:45
+#: tests/simple.cpp:17 tests/simple.cpp:46
 msgid "Hello {}!"
 msgstr ""
 
-#: tests/simple.cpp:21 tests/simple.cpp:22 tests/simple.cpp:49 tests/simple.cpp:50
+#: tests/simple.cpp:18 tests/simple.cpp:47
+msgid "pi is {:.4Lf}."
+msgstr ""
+
+#: tests/simple.cpp:22 tests/simple.cpp:23 tests/simple.cpp:51 tests/simple.cpp:52
 msgid "Hello planet!"
 msgid_plural "Hello planets!"
 msgstr[0] ""
 msgstr[1] ""
 
-#: tests/simple.cpp:23 tests/simple.cpp:24 tests/simple.cpp:51 tests/simple.cpp:52
+#: tests/simple.cpp:24 tests/simple.cpp:25 tests/simple.cpp:53 tests/simple.cpp:54
 msgid "Hello person!"
 msgid_plural "Hello people!"
 msgstr[0] ""
 msgstr[1] ""
 
-#: tests/simple.cpp:28 tests/simple.cpp:29 tests/simple.cpp:56 tests/simple.cpp:57
+#: tests/simple.cpp:29 tests/simple.cpp:30 tests/simple.cpp:58 tests/simple.cpp:59
 msgid "I ate {} apple."
 msgid_plural "I ate {} apples."
 msgstr[0] ""
 msgstr[1] ""
 
-#: tests/simple.cpp:30 tests/simple.cpp:31 tests/simple.cpp:58 tests/simple.cpp:59
+#: tests/simple.cpp:31 tests/simple.cpp:32 tests/simple.cpp:60 tests/simple.cpp:61
 msgid "I ate an apple."
 msgid_plural "I ate {} apples."
 msgstr[0] ""

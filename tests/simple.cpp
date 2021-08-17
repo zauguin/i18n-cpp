@@ -15,6 +15,7 @@ TEST_CASE("C locale shows identity", "[simple_i18n]" ) {
 
   SECTION("singular formatting") {
     REQUIRE("Hello Max!" == std::string("Hello {}!"_("Max")));
+    REQUIRE("pi is 3.1416." == std::string("pi is {:.4Lf}."_(std::numbers::pi)));
   }
 
   SECTION("plural strings") {
@@ -43,6 +44,7 @@ TEST_CASE("de locale provides translations", "[translations]" ) {
 
   SECTION("singular formatting") {
     REQUIRE("Hallo Max!" == std::string("Hello {}!"_("Max")));
+    REQUIRE("Pi ist 3,1416." == std::string("pi is {:.4Lf}."_(std::numbers::pi)));
   }
 
   SECTION("plural strings") {
