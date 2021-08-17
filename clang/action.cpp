@@ -94,9 +94,12 @@ bool evaluates_to_nullptr(const clang::Expr *expr, const clang::ASTContext &cont
   return expr->EvaluateAsRValue(result, context) && result.Val.isNullPointer();
 }
 
-std::string locToString(SourceLocation loc, SourceManager &sm) {
+std::string locToString(SourceLocation loc, SourceManager &sm, const optional<std::string> &base_path) {
   auto location = sm.getPresumedLoc(loc);
-  return (llvm::Twine(location.getFilename()) + ":" + std::to_string(location.getLine())).str();
+  auto str = (llvm::Twine(location.getFilename()) + ":" + std::to_string(location.getLine())).str();
+  if (base_path && std::string_view(str).substr(0, base_path->size()) == *base_path)
+    str = str.substr(base_path->size());
+  return str;
 }
 
 auto compare_first = [](const auto &a, const auto &b) { return a.first < b.first; };
@@ -458,6 +461,7 @@ class i18nConsumer : public SemaConsumer {
   optional<std::string> domain_filter;
   bool empty_domain;
   optional<std::string> comment_filter;
+  optional<std::string> base_path;
   llvm::SmallVector<std::pair<SourceLocation, client::ast::Message>, 0> messages;
   llvm::SmallVector<std::pair<SourceLocation, clang::RawComment>, 0> comments;
 
@@ -465,10 +469,10 @@ class i18nConsumer : public SemaConsumer {
   CommentHandler handler;
 
   i18nConsumer(clang::CompilerInstance &ci, optional<std::string> domain_filter, bool empty_domain,
-               optional<std::string> comment_filter):
+               optional<std::string> comment_filter, optional<std::string> base_path):
       ci(&ci),
       domain_filter(std::move(domain_filter)), empty_domain(empty_domain),
-      handler(comments, std::move(comment_filter)) {
+      handler(comments, std::move(comment_filter)), base_path(base_path) {
     ci.getPreprocessor().addCommentHandler(&handler);
   }
 
@@ -491,7 +495,7 @@ class i18nConsumer : public SemaConsumer {
         std::optional<std::string> combined;
         if (iter != after) { combined = iter->second.getFormattedText(sm, diag); }
         entry->second.extractedComments.emplace_back(
-            locToString(location, context.getSourceManager()), combined);
+            locToString(location, context.getSourceManager(), base_path), combined);
       }
 
     StringRef out_file = ci->getFrontendOpts().OutputFile;
@@ -523,7 +527,8 @@ class i18nConsumer : public SemaConsumer {
 
 std::unique_ptr<clang::ASTConsumer> i18nAction::CreateASTConsumer(clang::CompilerInstance &ci,
                                                                   StringRef) {
-  return std::make_unique<i18nConsumer>(ci, domain_filter, empty_domain, std::move(comment_filter));
+  return std::make_unique<i18nConsumer>(ci, domain_filter, empty_domain, std::move(comment_filter),
+                                        std::move(base_path));
 }
 
 bool i18nAction::ParseArgs(const std::vector<std::string> &args) {
@@ -541,6 +546,11 @@ bool i18nAction::ParseArgs(const std::vector<std::string> &args) {
         std::cerr << "Duplicate comment option ignored\n";
       else
         comment_filter = arg.str();
+    } else if (arg.consume_front("basepath=")) {
+      if (base_path)
+        std::cerr << "Duplicate base path ignored\n";
+      else
+        base_path = arg.str();
     } else
       std::cerr << "I hate users.\n";
   }

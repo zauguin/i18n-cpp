@@ -39,6 +39,7 @@ static cl::extrahelp MoreHelp("\nMore help text...\n");
 static cl::opt<bool> noDomain("nodomain", "Extract strings without domain");
 static cl::opt<std::string> domain("domain", "Select domain to extract");
 static cl::opt<std::string> comment("comment", "Prefix for extracted comments");
+static cl::opt<std::string> basepath("basepath", "Base path for reference locations");
 
 int main(int argc, const char **argv) {
   CommonOptionsParser OptionsParser(argc, argv, i18nCategory);
@@ -47,5 +48,6 @@ int main(int argc, const char **argv) {
   if (noDomain.getValue()) options.push_back("nodomain");
   if (domain.getNumOccurrences()) options.push_back("domain=" + domain.getValue());
   if (comment.getNumOccurrences()) options.push_back("comment=" + comment.getValue());
+  if (basepath.getNumOccurrences()) options.push_back("basepath=" + basepath.getValue());
   return Tool.run(i18nActionFactory(std::move(options)).get());
 }

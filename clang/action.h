@@ -26,4 +26,5 @@ class i18nAction : public clang::PluginASTAction {
   llvm::Optional<std::string> domain_filter;
   bool empty_domain = false;
   llvm::Optional<std::string> comment_filter;
+  llvm::Optional<std::string> base_path;
 };

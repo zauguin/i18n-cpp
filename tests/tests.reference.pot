@@ -17,33 +17,33 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: /home/marcel/i18n++/tests/simple.cpp:13
+#: tests/simple.cpp:13
 msgid "Hello world!"
 msgstr ""
 
-#: /home/marcel/i18n++/tests/simple.cpp:17
+#: tests/simple.cpp:17
 msgid "Hello {}!"
 msgstr ""
 
-#: /home/marcel/i18n++/tests/simple.cpp:21 /home/marcel/i18n++/tests/simple.cpp:22
+#: tests/simple.cpp:21 tests/simple.cpp:22
 msgid "Hello planet!"
 msgid_plural "Hello planets!"
 msgstr[0] ""
 msgstr[1] ""
 
-#: /home/marcel/i18n++/tests/simple.cpp:23 /home/marcel/i18n++/tests/simple.cpp:24
+#: tests/simple.cpp:23 tests/simple.cpp:24
 msgid "Hello person!"
 msgid_plural "Hello people!"
 msgstr[0] ""
 msgstr[1] ""
 
-#: /home/marcel/i18n++/tests/simple.cpp:28 /home/marcel/i18n++/tests/simple.cpp:29
+#: tests/simple.cpp:28 tests/simple.cpp:29
 msgid "I ate {} apple."
 msgid_plural "I ate {} apples."
 msgstr[0] ""
 msgstr[1] ""
 
-#: /home/marcel/i18n++/tests/simple.cpp:30 /home/marcel/i18n++/tests/simple.cpp:31
+#: tests/simple.cpp:30 tests/simple.cpp:31
 msgid "I ate an apple."
 msgid_plural "I ate {} apples."
 msgstr[0] ""
