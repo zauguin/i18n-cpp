@@ -25,6 +25,7 @@
 #include <llvm/ADT/StringRef.h>
 #include <optional>
 #include <utility>
+#include <filesystem>
 
 namespace {
 
@@ -94,11 +95,11 @@ bool evaluates_to_nullptr(const clang::Expr *expr, const clang::ASTContext &cont
   return expr->EvaluateAsRValue(result, context) && result.Val.isNullPointer();
 }
 
-std::string locToString(SourceLocation loc, SourceManager &sm, const optional<std::string> &base_path) {
+std::string locToString(SourceLocation loc, SourceManager &sm, const optional<std::filesystem::path> &base_path) {
   auto location = sm.getPresumedLoc(loc);
   auto str = (llvm::Twine(location.getFilename()) + ":" + std::to_string(location.getLine())).str();
-  if (base_path && std::string_view(str).substr(0, base_path->size()) == *base_path)
-    str = str.substr(base_path->size());
+  if (base_path)
+    str = std::filesystem::path(str).lexically_relative(*base_path).generic_string();
   return str;
 }
 
@@ -461,7 +462,7 @@ class i18nConsumer : public SemaConsumer {
   optional<std::string> domain_filter;
   bool empty_domain;
   optional<std::string> comment_filter;
-  optional<std::string> base_path;
+  optional<std::filesystem::path> base_path;
   llvm::SmallVector<std::pair<SourceLocation, client::ast::Message>, 0> messages;
   llvm::SmallVector<std::pair<SourceLocation, clang::RawComment>, 0> comments;
 
@@ -469,10 +470,10 @@ class i18nConsumer : public SemaConsumer {
   CommentHandler handler;
 
   i18nConsumer(clang::CompilerInstance &ci, optional<std::string> domain_filter, bool empty_domain,
-               optional<std::string> comment_filter, optional<std::string> base_path):
+               optional<std::string> comment_filter, optional<std::filesystem::path> base_path):
       ci(&ci),
       domain_filter(std::move(domain_filter)), empty_domain(empty_domain),
-      handler(comments, std::move(comment_filter)), base_path(base_path) {
+      handler(comments, std::move(comment_filter)), base_path(std::move(base_path)) {
     ci.getPreprocessor().addCommentHandler(&handler);
   }
 
@@ -550,7 +551,7 @@ bool i18nAction::ParseArgs(const std::vector<std::string> &args) {
       if (base_path)
         std::cerr << "Duplicate base path ignored\n";
       else
-        base_path = arg.str();
+        base_path = std::filesystem::weakly_canonical(arg.str());
     } else
       std::cerr << "I hate users.\n";
   }
