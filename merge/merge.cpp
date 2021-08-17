@@ -61,7 +61,7 @@ void merge_msg(std::vector<Message> &msgs) {
     const auto old_end = msg.extractedComments.end();
 
     if (front != old_end) {
-      auto read_iter = front + 1;
+      auto read_iter = front;
       while (read_iter != old_end) {
         auto &base = *read_iter;
         while (++read_iter != old_end && read_iter->first == base.first) {
@@ -73,19 +73,21 @@ void merge_msg(std::vector<Message> &msgs) {
                            "comments will be dropped.\n";
           }
         }
-        if (base.first) {
-          if (front->first) {
-            *front->first += ' ';
-            *front->first += *base.first;
-          } else
-            front->first = std::move(base.first);
-        }
-        if (base.second) {
-          if (front->second) {
-            *front->second += '\n';
-            *front->second += *base.second;
-          } else
-            front->second = std::move(base.second);
+        if (&base != &*front) {
+          if (base.first) {
+            if (front->first) {
+              *front->first += ' ';
+              *front->first += *base.first;
+            } else
+              front->first = std::move(base.first);
+          }
+          if (base.second) {
+            if (front->second) {
+              *front->second += '\n';
+              *front->second += *base.second;
+            } else
+              front->second = std::move(base.second);
+          }
         }
       }
       msg.extractedComments.resize(front->first || front->second ? 1 : 0);
