@@ -31,3 +31,31 @@ TEST_CASE("C locale shows identity", "[simple_i18n]" ) {
     REQUIRE("I ate 2 apples." == std::string("I ate (an|{}) apple(s)."_(2)));
   }
 }
+
+TEST_CASE("de locale provides translations", "[translations]" ) {
+  std::locale::global(std::locale("de_DE.UTF_8"));
+  bindtextdomain("testcases", TEST_SOURCE_DIR);
+  textdomain("testcases");
+
+  SECTION("singular strings") {
+    REQUIRE("Hallo Welt!" == std::string("Hello world!"_));
+  }
+
+  SECTION("singular formatting") {
+    REQUIRE("Hallo Max!" == std::string("Hello {}!"_("Max")));
+  }
+
+  SECTION("plural strings") {
+    REQUIRE("Hallo Planet!" == std::string("Hello planet(s)!"_[1]));
+    REQUIRE("Hallo Planeten!" == std::string("Hello planet(s)!"_[2]));
+    REQUIRE("Hallo Person!" == std::string("Hello (person|people)!"_[1]));
+    REQUIRE("Hallo Personen!" == std::string("Hello (person|people)!"_[2]));
+  }
+
+  SECTION("plural strings formatting") {
+    REQUIRE("Ich habe 1 Apfel gegessen." == std::string("I ate {} apple(s)."_(1)));
+    REQUIRE("Ich habe 2 Äpfel gegessen." == std::string("I ate {} apple(s)."_(2)));
+    REQUIRE("Ich habe einen Apfel gegessen." == std::string("I ate (an|{}) apple(s)."_(1)));
+    REQUIRE("Ich habe 2 Äpfel gegessen." == std::string("I ate (an|{}) apple(s)."_(2)));
+  }
+}

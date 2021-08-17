@@ -1,0 +1,54 @@
+# German translations for i18n_tests package.
+# Copyright (C) 2021 THE i18n_tests'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the i18n_tests package.
+#  <translator@example.com>, 2021.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: i18n_tests 0.0.1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-07-14 02:40+0000\n"
+"PO-Revision-Date: 2021-08-17 17:05+0200\n"
+"Last-Translator:  <translator@example.com>\n"
+"Language-Team: German <translation-team-de@lists.sourceforge.net>\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: tests/simple.cpp:13 tests/simple.cpp:41
+msgid "Hello world!"
+msgstr "Hallo Welt!"
+
+#: tests/simple.cpp:17 tests/simple.cpp:45
+msgid "Hello {}!"
+msgstr "Hallo {}!"
+
+#: tests/simple.cpp:21 tests/simple.cpp:22 tests/simple.cpp:49
+#: tests/simple.cpp:50
+msgid "Hello planet!"
+msgid_plural "Hello planets!"
+msgstr[0] "Hallo Planet!"
+msgstr[1] "Hallo Planeten!"
+
+#: tests/simple.cpp:23 tests/simple.cpp:24 tests/simple.cpp:51
+#: tests/simple.cpp:52
+msgid "Hello person!"
+msgid_plural "Hello people!"
+msgstr[0] "Hallo Person!"
+msgstr[1] "Hallo Personen!"
+
+#: tests/simple.cpp:28 tests/simple.cpp:29 tests/simple.cpp:56
+#: tests/simple.cpp:57
+msgid "I ate {} apple."
+msgid_plural "I ate {} apples."
+msgstr[0] "Ich habe {} Apfel gegessen."
+msgstr[1] "Ich habe {} Äpfel gegessen."
+
+#: tests/simple.cpp:30 tests/simple.cpp:31 tests/simple.cpp:58
+#: tests/simple.cpp:59
+msgid "I ate an apple."
+msgid_plural "I ate {} apples."
+msgstr[0] "Ich habe einen Apfel gegessen."
+msgstr[1] "Ich habe {} Äpfel gegessen."
