@@ -18,10 +18,10 @@ TEST_CASE("C locale shows identity", "[simple_i18n]" ) {
   }
 
   SECTION("plural strings") {
-    REQUIRE("Hello world!" == std::string("Hello world(s)!"_[1]));
-    REQUIRE("Hello worlds!" == std::string("Hello world(s)!"_[2]));
-    REQUIRE("Hello earth!" == std::string("Hello (earth|planets)!"_[1]));
-    REQUIRE("Hello planets!" == std::string("Hello (earth|planets)!"_[2]));
+    REQUIRE("Hello planet!" == std::string("Hello planet(s)!"_[1]));
+    REQUIRE("Hello planets!" == std::string("Hello planet(s)!"_[2]));
+    REQUIRE("Hello person!" == std::string("Hello (person|people)!"_[1]));
+    REQUIRE("Hello people!" == std::string("Hello (person|people)!"_[2]));
   }
 
   SECTION("plural strings formatting") {

@@ -2,6 +2,7 @@
 #include "merge.hpp"
 #include "messages.hpp"
 
+#include <cstdlib>
 #include <ctime>
 #include <fmt/format.h>
 #include <fstream>
@@ -26,7 +27,13 @@ int main(int argc, char const *argv[]) {
   std::unique_ptr<std::ostream> out_file;
   std::string timestamp(21, '\0');
   {
-    std::time_t now = std::time(nullptr);
+    auto now = []() -> std::time_t {
+      if (const char *epoch = std::getenv("SOURCE_DATE_EPOCH")) {
+        return std::atoll(epoch);
+      } else {
+        return std::time(nullptr);
+      }
+    }();
     timestamp.resize(
         std::strftime(timestamp.data(), timestamp.size() + 1, "%F %R%z", std::localtime(&now)));
   }
