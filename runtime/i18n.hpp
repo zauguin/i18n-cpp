@@ -41,7 +41,8 @@ class I18NStringImpl {
 
   template <typename... Args>
   decltype(auto) operator()(Args &&...args) const {
-    return fmtstd::vformat(std::string_view(*this), fmtstd::make_format_args(std::forward<Args>(args)...));
+    return fmtstd::vformat(std::string_view(*this),
+                           fmtstd::make_format_args(std::forward<Args>(args)...));
   }
 
  protected:
@@ -64,7 +65,8 @@ class I18NPluralStringImpl {
 
   template <std::convertible_to<unsigned long> First, typename... Args>
   decltype(auto) operator()(First &&first, Args &&...args) {
-    return fmtstd::vformat((*this)[first], fmtstd::make_format_args(std::forward<First>(first), std::forward<Args>(args)...));
+    return fmtstd::vformat((*this)[first], fmtstd::make_format_args(std::forward<First>(first),
+                                                                    std::forward<Args>(args)...));
   }
 
  protected:
@@ -406,8 +408,7 @@ struct MyI18NString :
   decltype(auto) operator()(Args &&...args) {
     if (false) {
       fmtstd::format(Singular.str, std::forward<Args>(args)...);
-      if constexpr (Plural)
-        fmtstd::format(Plural.str, std::forward<Args>(args)...);
+      if constexpr (Plural) fmtstd::format(Plural.str, std::forward<Args>(args)...);
     }
     if constexpr (Plural)
       return MyI18NString::I18NPluralString::operator()(std::forward<Args>(args)...);
@@ -418,9 +419,12 @@ struct MyI18NString :
 };
 } // namespace detail
 
-template <CompileTimeString Str, CompileTimeString Domain = CompileTimeString<
-                                     typename decltype(Str)::char_type, std::size_t(-1)>()>
-constexpr auto build_I18NString() {
+template <template <CompileTimeString, CompileTimeString, CompileTimeString, CompileTimeString>
+          typename I18NStringBase,
+          CompileTimeString Str,
+          CompileTimeString Domain =
+              CompileTimeString<typename decltype(Str)::char_type, std::size_t(-1)>()>
+constexpr auto build_I18NString_generic() {
   using char_type = typename decltype(Str)::char_type;
   // We are working in two steps:
   constexpr auto lengths = [] {
@@ -448,7 +452,14 @@ constexpr auto build_I18NString() {
     return result;
   }();
 
-  return detail::MyI18NString<Domain, strings.context, strings.singular, strings.plural>();
+  return I18NStringBase<Domain, strings.context, strings.singular, strings.plural>();
+}
+
+template <CompileTimeString Str,
+          CompileTimeString Domain =
+              CompileTimeString<typename decltype(Str)::char_type, std::size_t(-1)>()>
+constexpr auto build_I18NString() {
+  return build_I18NString_generic<detail::MyI18NString, Str, Domain>();
 }
 
 } // namespace mfk::i18n
