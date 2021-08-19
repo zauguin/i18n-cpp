@@ -10,11 +10,19 @@ TEST_CASE("C locale shows identity", "[simple_i18n]" ) {
   textdomain("testcases");
 
   SECTION("singular strings") {
+    // If this test fails, something went terribly wrong
+    // L10N: Please don't mess up the translation.
     REQUIRE("Hello world!" == std::string("Hello world!"_));
   }
 
   SECTION("singular formatting") {
     REQUIRE("Hello Max!" == std::string("Hello {}!"_("Max")));
+    /*
+     * L10N: If you translate this into a language used by pedantic people, feel free to
+     * increase the precision.
+     *
+     * But don't set it higher then 14, otherwise `double` might not be enough.
+     */
     REQUIRE("pi is 3.1416." == std::string("pi is {:.4Lf}."_(std::numbers::pi)));
   }
 

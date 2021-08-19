@@ -17,37 +17,44 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: tests/simple.cpp:13 tests/simple.cpp:42
+#. L10N: Please don't mess up the translation.
+#: tests/simple.cpp:15 tests/simple.cpp:50
 msgid "Hello world!"
 msgstr ""
 
-#: tests/simple.cpp:17 tests/simple.cpp:46
+#: tests/simple.cpp:19 tests/simple.cpp:54
 msgid "Hello {}!"
 msgstr ""
 
-#: tests/simple.cpp:18 tests/simple.cpp:47
+#. 
+#.  L10N: If you translate this into a language used by pedantic people, feel free to
+#.  increase the precision.
+#. 
+#.  But don't set it higher then 14, otherwise `double` might not be enough.
+#.      
+#: tests/simple.cpp:26 tests/simple.cpp:55
 msgid "pi is {:.4Lf}."
 msgstr ""
 
-#: tests/simple.cpp:22 tests/simple.cpp:23 tests/simple.cpp:51 tests/simple.cpp:52
+#: tests/simple.cpp:30 tests/simple.cpp:31 tests/simple.cpp:59 tests/simple.cpp:60
 msgid "Hello planet!"
 msgid_plural "Hello planets!"
 msgstr[0] ""
 msgstr[1] ""
 
-#: tests/simple.cpp:24 tests/simple.cpp:25 tests/simple.cpp:53 tests/simple.cpp:54
+#: tests/simple.cpp:32 tests/simple.cpp:33 tests/simple.cpp:61 tests/simple.cpp:62
 msgid "Hello person!"
 msgid_plural "Hello people!"
 msgstr[0] ""
 msgstr[1] ""
 
-#: tests/simple.cpp:29 tests/simple.cpp:30 tests/simple.cpp:58 tests/simple.cpp:59
+#: tests/simple.cpp:37 tests/simple.cpp:38 tests/simple.cpp:66 tests/simple.cpp:67
 msgid "I ate {} apple."
 msgid_plural "I ate {} apples."
 msgstr[0] ""
 msgstr[1] ""
 
-#: tests/simple.cpp:31 tests/simple.cpp:32 tests/simple.cpp:60 tests/simple.cpp:61
+#: tests/simple.cpp:39 tests/simple.cpp:40 tests/simple.cpp:68 tests/simple.cpp:69
 msgid "I ate an apple."
 msgid_plural "I ate {} apples."
 msgstr[0] ""
