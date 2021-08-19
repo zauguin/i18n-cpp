@@ -71,6 +71,7 @@ using llvm::dyn_cast;
 using llvm::StringRef;
 
 inline SourceLocation locToLineBegin(SourceLocation loc, SourceManager &sm) {
+  loc = sm.getSpellingLoc(loc);
   return loc.getLocWithOffset(1 - sm.getSpellingColumnNumber(loc));
 }
 
@@ -461,7 +462,6 @@ class i18nConsumer : public SemaConsumer {
   clang::CompilerInstance *ci;
   optional<std::string> domain_filter;
   bool empty_domain;
-  optional<std::string> comment_filter;
   optional<std::filesystem::path> base_path;
   llvm::SmallVector<std::pair<SourceLocation, client::ast::Message>, 0> messages;
   llvm::SmallVector<std::pair<SourceLocation, clang::RawComment>, 0> comments;
@@ -496,7 +496,7 @@ class i18nConsumer : public SemaConsumer {
         std::optional<std::string> combined;
         if (iter != after) { combined = iter->second.getFormattedText(sm, diag); }
         entry->second.extractedComments.emplace_back(
-            locToString(location, context.getSourceManager(), base_path), combined);
+            locToString(location, sm, base_path), combined);
       }
 
     StringRef out_file = ci->getFrontendOpts().OutputFile;
