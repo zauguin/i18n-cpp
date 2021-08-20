@@ -6,7 +6,7 @@ add_executable(tests)
 
 find_package(fmt REQUIRED)
 
-target_sources(tests PRIVATE simple.cpp)
+target_sources(tests PRIVATE simple.cpp readme.cpp)
 target_link_libraries(tests PRIVATE fmt::fmt i18n_lib Catch2::Catch2WithMain)
 target_include_directories(tests PRIVATE ../runtime)
 target_compile_options(tests PRIVATE "SHELL:-Xclang -plugin-arg-i18n -Xclang nodomain -Xclang -plugin-arg-i18n -Xclang basepath=${CMAKE_SOURCE_DIR} -Xclang -plugin-arg-i18n -Xclang comment=L10N:")
