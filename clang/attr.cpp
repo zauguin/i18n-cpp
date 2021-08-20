@@ -7,7 +7,6 @@
 #include <clang/Sema/SemaDiagnostic.h>
 #include <llvm/ADT/StringRef.h>
 #include <llvm/IR/Attributes.h>
-
 #include <string>
 #include <utility>
 
@@ -30,23 +29,19 @@ constexpr struct {
 
 template <int Index>
 struct AttrInfo : public clang::ParsedAttrInfo {
-  static constexpr Spelling OurSpelling = {clang::ParsedAttr::AS_CXX11,
-                                           Mapping[Index].spelling};
+  static constexpr Spelling OurSpelling = {clang::ParsedAttr::AS_CXX11, Mapping[Index].spelling};
   AttrInfo() { Spellings = OurSpelling; }
 
   bool diagAppertainsToDecl(clang::Sema &sema, const clang::ParsedAttr &attr,
                             const clang::Decl *declaration) const override {
     if constexpr (Index == 0) {
-      if (isa<clang::FunctionDecl>(declaration) ||
-          isa<clang::RecordDecl>(declaration))
-        return true;
+      if (isa<clang::FunctionDecl>(declaration) || isa<clang::RecordDecl>(declaration)) return true;
       sema.Diag(attr.getLoc(), clang::diag::warn_attribute_wrong_decl_type_str)
           << attr << "functions or classes";
       return false;
     } else {
       if (auto *decl = dyn_cast<clang::VarDecl>(declaration))
-        if (isa<clang::ParmVarDecl>(decl) ||
-            (decl->isStaticDataMember() && decl->isConstexpr()))
+        if (isa<clang::ParmVarDecl>(decl) || (decl->isStaticDataMember() && decl->isConstexpr()))
           return true;
       sema.Diag(attr.getLoc(), clang::diag::warn_attribute_wrong_decl_type_str)
           << attr << "static constexpr data members or function arguments";
@@ -54,11 +49,10 @@ struct AttrInfo : public clang::ParsedAttrInfo {
     }
   }
 
-  AttrHandling handleDeclAttribute(
-      clang::Sema &sema, clang::Decl *declaration,
-      const clang::ParsedAttr &attr) const override {
-    declaration->addAttr(clang::AnnotateAttr::Create(
-        sema.Context, Mapping[Index].annotation, nullptr, 0, attr.getRange()));
+  AttrHandling handleDeclAttribute(clang::Sema &sema, clang::Decl *declaration,
+                                   const clang::ParsedAttr &attr) const override {
+    declaration->addAttr(clang::AnnotateAttr::Create(sema.Context, Mapping[Index].annotation,
+                                                     nullptr, 0, attr.getRange()));
     return AttributeApplied;
   }
 };
@@ -70,13 +64,10 @@ template <>
 struct Register<std::index_sequence<>> {};
 
 template <std::size_t I, std::size_t... Is>
-struct Register<std::index_sequence<I, Is...>>
-    : Register<std::index_sequence<Is...>> {
-  clang::ParsedAttrInfoRegistry::Add<AttrInfo<I>> X{Mapping[I].spelling,
-                                                    "Attribute for i18n"};
+struct Register<std::index_sequence<I, Is...>> : Register<std::index_sequence<Is...>> {
+  clang::ParsedAttrInfoRegistry::Add<AttrInfo<I>> X{Mapping[I].spelling, "Attribute for i18n"};
 };
 
-static Register<std::make_index_sequence<sizeof(Mapping) / sizeof(*Mapping)>>
-    registrations;
+static Register<std::make_index_sequence<sizeof(Mapping) / sizeof(*Mapping)>> registrations;
 
-}  // namespace
+} // namespace

@@ -98,6 +98,7 @@ First compile the `clang++` plugin:
 ```
 git clone https://github.com/zauguin/i18n-cpp i18n++
 cd i18n++
+git submodule update --init
 CXX=clang++ cmake -B build -G Ninja
 cmake --build build
 ```

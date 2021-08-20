@@ -19,13 +19,13 @@
 #include <clang/Lex/Preprocessor.h>
 #include <clang/Sema/Sema.h>
 #include <clang/Sema/SemaConsumer.h>
+#include <filesystem>
 #include <fstream>
 #include <llvm/ADT/APSInt.h>
 #include <llvm/ADT/SmallVector.h>
 #include <llvm/ADT/StringRef.h>
 #include <optional>
 #include <utility>
-#include <filesystem>
 
 namespace {
 
@@ -96,11 +96,11 @@ bool evaluates_to_nullptr(const clang::Expr *expr, const clang::ASTContext &cont
   return expr->EvaluateAsRValue(result, context) && result.Val.isNullPointer();
 }
 
-std::string locToString(SourceLocation loc, SourceManager &sm, const optional<std::filesystem::path> &base_path) {
+std::string locToString(SourceLocation loc, SourceManager &sm,
+                        const optional<std::filesystem::path> &base_path) {
   auto location = sm.getPresumedLoc(loc);
   auto str = (llvm::Twine(location.getFilename()) + ":" + std::to_string(location.getLine())).str();
-  if (base_path)
-    str = std::filesystem::path(str).lexically_relative(*base_path).generic_string();
+  if (base_path) str = std::filesystem::path(str).lexically_relative(*base_path).generic_string();
   return str;
 }
 
@@ -495,8 +495,8 @@ class i18nConsumer : public SemaConsumer {
                                               std::make_pair(location, std::ignore), compare_first);
         std::optional<std::string> combined;
         if (iter != after) { combined = iter->second.getFormattedText(sm, diag); }
-        entry->second.extractedComments.emplace_back(
-            locToString(location, sm, base_path), combined);
+        entry->second.extractedComments.emplace_back(locToString(location, sm, base_path),
+                                                     combined);
       }
 
     StringRef out_file = ci->getFrontendOpts().OutputFile;

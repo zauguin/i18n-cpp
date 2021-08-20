@@ -5,7 +5,7 @@
 using namespace mfk::i18n::literals;
 using namespace std::string_literals;
 
-TEST_CASE("C locale shows identity", "[simple_i18n]" ) {
+TEST_CASE("C locale shows identity", "[simple_i18n]") {
   std::locale::global(std::locale("C"));
   textdomain("testcases");
 
@@ -41,14 +41,12 @@ TEST_CASE("C locale shows identity", "[simple_i18n]" ) {
   }
 }
 
-TEST_CASE("de locale provides translations", "[translations]" ) {
+TEST_CASE("de locale provides translations", "[translations]") {
   std::locale::global(std::locale("de_DE.UTF_8"));
   bindtextdomain("testcases", TEST_SOURCE_DIR);
   textdomain("testcases");
 
-  SECTION("singular strings") {
-    REQUIRE("Hallo Welt!" == std::string("Hello world!"_));
-  }
+  SECTION("singular strings") { REQUIRE("Hallo Welt!" == std::string("Hello world!"_)); }
 
   SECTION("singular formatting") {
     REQUIRE("Hallo Max!" == std::string("Hello {}!"_("Max")));
