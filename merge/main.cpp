@@ -11,7 +11,7 @@
 
 std::string read_file(const char *filename) {
   std::ifstream file(filename);
-  if (!file) throw "Unable to open file";
+  if (!file) throw std::runtime_error("Unable to open file");
   std::ostringstream str;
   str << file.rdbuf();
   return str.str();

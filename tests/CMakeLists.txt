@@ -17,8 +17,8 @@ foreach(src ${srcs})
 endforeach()
 add_custom_command(OUTPUT tests.pot
   COMMAND ${CMAKE_COMMAND} -E env "SOURCE_DATE_EPOCH=1500000000" "TZ=UTC"
-    $<TARGET_FILE:merge_pot> "--package=${PROJECT_NAME}" "--version=${PROJECT_VERSION}" "--output=tests.pot" "$<JOIN:$<TARGET_OBJECTS:tests>,.poc >.poc"
-  DEPENDS "$<JOIN:$<TARGET_OBJECTS:tests>,.poc >.poc"
+    $<TARGET_FILE:merge_pot> "--package=${PROJECT_NAME}" "--version=${PROJECT_VERSION}" "--output=tests.pot" "$<JOIN:$<TARGET_OBJECTS:tests>,.poc;>.poc"
+  DEPENDS "$<JOIN:$<TARGET_OBJECTS:tests>,.poc;>.poc"
   COMMAND_EXPAND_LISTS)
 add_custom_target(tests_pot ALL DEPENDS tests.pot)
 

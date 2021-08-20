@@ -16,7 +16,7 @@ extern "C" {
 
 namespace mfk::i18n::inline literals {
 template <CompileTimeString str>
-[[mfk::i18n]] auto operator""_() {
+[[mfk::i18n]] constexpr auto operator""_() {
   return build_I18NString<str>();
 }
 } // namespace mfk::i18n::inline literals

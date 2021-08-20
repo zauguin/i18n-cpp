@@ -56,7 +56,7 @@ class I18NStringImpl {
 template <typename Derived>
 class I18NPluralStringImpl {
  public:
-  const char *operator[](unsigned long n) {
+  const char *operator[](unsigned long n) const {
     auto &self             = *static_cast<const Derived *>(this);
     auto &&msgid           = self.get_msgid();
     const char *translated = dngettext(self.get_domain(), msgid, self.get_plural(), n);
@@ -64,7 +64,7 @@ class I18NPluralStringImpl {
   }
 
   template <std::convertible_to<unsigned long> First, typename... Args>
-  decltype(auto) operator()(First &&first, Args &&...args) {
+  decltype(auto) operator()(First &&first, Args &&...args) const {
     return fmtstd::vformat((*this)[first], fmtstd::make_format_args(std::forward<First>(first),
                                                                     std::forward<Args>(args)...));
   }
@@ -403,9 +403,8 @@ struct MyI18NString :
       MyI18NString::I18NPluralString(CTS::msgid(), CTS::singular(), CTS::plural()) {}
   constexpr MyI18NString() requires(!Plural):
       MyI18NString::I18NString(CTS::msgid(), CTS::singular()) {}
-#if USE_FMT
   template <typename... Args>
-  decltype(auto) operator()(Args &&...args) {
+  decltype(auto) operator()(Args &&...args) const {
     if (false) {
       fmtstd::format(Singular.str, std::forward<Args>(args)...);
       if constexpr (Plural) fmtstd::format(Plural.str, std::forward<Args>(args)...);
@@ -415,7 +414,6 @@ struct MyI18NString :
     else
       return MyI18NString::I18NString::operator()(std::forward<Args>(args)...);
   }
-#endif
 };
 } // namespace detail
 
