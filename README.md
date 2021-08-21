@@ -105,7 +105,7 @@ cmake --build build
 
 The file can then be compiled with
 
-    clang++ -c filename.cpp -Ipath/to/i18n++/runtime -fplugin=path/to/i18n++/build/clang/i18n.so
+    clang++ -c filename.cpp -Ipath/to/i18n++/include -fplugin=path/to/i18n++/build/clang/i18n.so
 
 This generates a `filename.o.poc` (**PO** **c**omponent) in addition to the `filename.o` object.
 All the `.poc` files in your program can be merged into a `.pot` file using

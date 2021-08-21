@@ -28,7 +28,7 @@ target_link_options(plugin PRIVATE -fuse-ld=lld)
 target_link_options(tool PRIVATE -fuse-ld=lld)
 
 add_library(i18n_lib INTERFACE)
-target_include_directories(i18n_lib INTERFACE ../runtime)
+target_include_directories(i18n_lib INTERFACE ../include)
 target_compile_options(i18n_lib INTERFACE "-fplugin=$<TARGET_FILE:plugin>")
 target_compile_features(i18n_lib INTERFACE cxx_std_20)
 

@@ -8,7 +8,7 @@ find_package(fmt REQUIRED)
 
 target_sources(guessing PRIVATE guessing.cpp)
 target_link_libraries(guessing PRIVATE fmt::fmt i18n_lib)
-target_include_directories(guessing PRIVATE ../runtime)
+target_include_directories(guessing PRIVATE ../include)
 target_compile_options(guessing PRIVATE "SHELL:-Xclang -plugin-arg-i18n -Xclang nodomain")
 get_target_property(srcs guessing SOURCES)
 foreach(src ${srcs})
