@@ -65,9 +65,9 @@ struct Register<std::index_sequence<>> {};
 
 template <std::size_t I, std::size_t... Is>
 struct Register<std::index_sequence<I, Is...>> : Register<std::index_sequence<Is...>> {
-  clang::ParsedAttrInfoRegistry::Add<AttrInfo<I>> X{Mapping[I].spelling, "Attribute for i18n"};
+  [[maybe_unused]] clang::ParsedAttrInfoRegistry::Add<AttrInfo<I>> X{Mapping[I].spelling, "Attribute for i18n"};
 };
 
-static Register<std::make_index_sequence<sizeof(Mapping) / sizeof(*Mapping)>> registrations;
+[[maybe_unused]] Register<std::make_index_sequence<sizeof(Mapping) / sizeof(*Mapping)>> registrations;
 
 } // namespace

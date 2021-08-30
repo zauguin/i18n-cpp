@@ -17,16 +17,16 @@ class dev_seed {
  public:
   dev_seed() = default;
   template <typename Iter>
-  dev_seed(Iter, Iter) {}
-  dev_seed(std::initializer_list<result_type>) {}
+  [[maybe_unused]] dev_seed(Iter, Iter) {}
+  [[maybe_unused]] dev_seed(std::initializer_list<result_type>) {}
   template <typename Iter>
   void generate(Iter begin, const Iter end) {
     while (begin != end)
       *begin++ = dist(rddev);
   }
-  std::size_t size() const { return 0; }
+  [[nodiscard]] static std::size_t size() { return 0; }
   template <typename Iter>
-  void param(Iter) const {}
+  static void param(Iter) {}
 };
 
 int main(int, char const *[]) {
