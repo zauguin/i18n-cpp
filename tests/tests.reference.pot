@@ -17,12 +17,46 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
+#: tests/readme.cpp:15 tests/readme.cpp:23
+msgid "The first message.\n"
+msgstr ""
+
+#: tests/readme.cpp:16
+msgid "We have {} message.\n"
+msgid_plural "We have {} messages.\n"
+msgstr[0] ""
+msgstr[1] ""
+
+#: tests/readme.cpp:19
+msgctxt "file"
+msgid "open"
+msgstr ""
+
+#: tests/readme.cpp:21
+msgctxt "door"
+msgid "open"
+msgstr ""
+
+#: tests/readme.cpp:27
+msgid "The last message.\n"
+msgstr ""
+
+#: tests/readme.cpp:8
+msgid "Some global string"
+msgstr ""
+
+#: tests/readme.cpp:9
+msgid "We have {} global string"
+msgid_plural "We have {} global strings"
+msgstr[0] ""
+msgstr[1] ""
+
 #. L10N: Please don't mess up the translation.
-#: tests/simple.cpp:15 tests/simple.cpp:50
+#: tests/simple.cpp:15 tests/simple.cpp:49
 msgid "Hello world!"
 msgstr ""
 
-#: tests/simple.cpp:19 tests/simple.cpp:54
+#: tests/simple.cpp:19 tests/simple.cpp:52
 msgid "Hello {}!"
 msgstr ""
 
@@ -32,29 +66,29 @@ msgstr ""
 #. 
 #.  But don't set it higher then 14, otherwise `double` might not be enough.
 #.      
-#: tests/simple.cpp:26 tests/simple.cpp:55
+#: tests/simple.cpp:26 tests/simple.cpp:53
 msgid "pi is {:.4Lf}."
 msgstr ""
 
-#: tests/simple.cpp:30 tests/simple.cpp:31 tests/simple.cpp:59 tests/simple.cpp:60
+#: tests/simple.cpp:30 tests/simple.cpp:31 tests/simple.cpp:57 tests/simple.cpp:58
 msgid "Hello planet!"
 msgid_plural "Hello planets!"
 msgstr[0] ""
 msgstr[1] ""
 
-#: tests/simple.cpp:32 tests/simple.cpp:33 tests/simple.cpp:61 tests/simple.cpp:62
+#: tests/simple.cpp:32 tests/simple.cpp:33 tests/simple.cpp:59 tests/simple.cpp:60
 msgid "Hello person!"
 msgid_plural "Hello people!"
 msgstr[0] ""
 msgstr[1] ""
 
-#: tests/simple.cpp:37 tests/simple.cpp:38 tests/simple.cpp:66 tests/simple.cpp:67
+#: tests/simple.cpp:37 tests/simple.cpp:38 tests/simple.cpp:64 tests/simple.cpp:65
 msgid "I ate {} apple."
 msgid_plural "I ate {} apples."
 msgstr[0] ""
 msgstr[1] ""
 
-#: tests/simple.cpp:39 tests/simple.cpp:40 tests/simple.cpp:68 tests/simple.cpp:69
+#: tests/simple.cpp:39 tests/simple.cpp:40 tests/simple.cpp:66 tests/simple.cpp:67
 msgid "I ate an apple."
 msgid_plural "I ate {} apples."
 msgstr[0] ""
