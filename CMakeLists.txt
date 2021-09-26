@@ -14,3 +14,5 @@ add_subdirectory(merge)
 add_subdirectory(clang)
 add_subdirectory(example)
 add_subdirectory(tests)
+
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} FILES_MATCHING PATTERN "*.hpp")
