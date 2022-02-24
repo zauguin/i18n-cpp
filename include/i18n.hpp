@@ -406,8 +406,8 @@ struct MyI18NString :
   template <typename... Args>
   decltype(auto) operator()(Args &&...args) const {
     if (false) {
-      fmtstd::format(Singular.str, std::forward<Args>(args)...);
-      if constexpr (Plural) fmtstd::format(Plural.str, std::forward<Args>(args)...);
+      (void)fmtstd::format(Singular.str, std::forward<Args>(args)...);
+      if constexpr (Plural) (void)fmtstd::format(Plural.str, std::forward<Args>(args)...);
     }
     if constexpr (Plural)
       return MyI18NString::I18NPluralString::operator()(std::forward<Args>(args)...);
@@ -453,9 +453,8 @@ constexpr auto build_I18NString_generic() {
   return I18NStringBase<Domain, strings.context, strings.singular, strings.plural>();
 }
 
-template <CompileTimeString Str,
-          CompileTimeString Domain =
-              CompileTimeString<typename decltype(Str)::char_type, std::size_t(-1)>()>
+template <CompileTimeString Str, CompileTimeString Domain = CompileTimeString<
+                                     typename decltype(Str)::char_type, std::size_t(-1)>()>
 constexpr auto build_I18NString() {
   return build_I18NString_generic<detail::MyI18NString, Str, Domain>();
 }

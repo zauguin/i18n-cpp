@@ -43,12 +43,13 @@ cl::OptionCategory i18nCategory("i18n options");
     " --domain <textdomain> is used to restrict extraction to strings with an explicit "
     "textdomain.\n\n"
     "    If your project explicitly specifies the text domain for every\n"
-"string, this can be used to restrict the extraction to one specific domain.\n"
+    "string, this can be used to restrict the extraction to one specific domain.\n"
     "This option can only be used once, if you want to extract messages for multiple\n"
     "domains the tool as to be called multiple times. It can be combined with\n"
     "--nodomain though. This is mostly useful if  the domain is also the globally\n"
     "set textdomain in your application.\n\n"
-    " --nodomain Extract strings with no explicit textdomain (This is most likely what you want)\n\n"
+    " --nodomain Extract strings with no explicit textdomain (This is most likely what you "
+    "want)\n\n"
     "    By default, all strings are extracted. If this option is specified,\n"
     "    only strings with no explicit textdomain will be extracted. As long as\n"
     "    you are aware that this will hide all other messages you probably want\n"
@@ -73,8 +74,12 @@ cl::opt<std::string> basepath("basepath", cl::desc("Base path for reference loca
 } // namespace
 
 int main(int argc, const char **argv) {
-  CommonOptionsParser OptionsParser(argc, argv, i18nCategory);
-  ClangTool Tool(OptionsParser.getCompilations(), OptionsParser.getSourcePathList());
+  auto OptionsParser = CommonOptionsParser::create(argc, argv, i18nCategory);
+  if (!OptionsParser) {
+    llvm::errs() << OptionsParser.takeError();
+    return 1;
+  }
+  ClangTool Tool(OptionsParser->getCompilations(), OptionsParser->getSourcePathList());
   std::vector<std::string> options;
   if (noDomain.getValue()) options.push_back("nodomain");
   if (domain.getNumOccurrences()) options.push_back("domain=" + domain.getValue());
