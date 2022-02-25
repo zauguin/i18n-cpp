@@ -106,7 +106,7 @@ sudo cmake --build build
 
 The file can then be compiled with
 
-    clang++ -c filename.cpp -fplugin=i18n-clang.so
+    clang++ -c filename.cpp -fplugin=i18n-clang.so -Xclang -plugin-arg-i18n -Xclang nodomain
 
 This generates a `filename.o.poc` (**PO** **c**omponent) in addition to the `filename.o` object.
 All the `.poc` files in your program can be merged into a `.pot` file using
