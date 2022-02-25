@@ -28,6 +28,17 @@ namespace fmtstd = std;
 namespace mfk::i18n {
 
 namespace detail {
+
+// From the C++ standard:
+#if __cpp_lib_concepts < 202002L
+template<class From, class To>
+concept convertible_to = std::is_convertible_v<From, To> && requires {
+  static_cast<To>(std::declval<From>());
+};
+#else
+using std::convertible_to;
+#endif
+
 template <typename Derived>
 class I18NStringImpl {
  public:
@@ -63,7 +74,7 @@ class I18NPluralStringImpl {
     return translated != msgid ? translated : self.get_singular();
   }
 
-  template <std::convertible_to<unsigned long> First, typename... Args>
+  template <convertible_to<unsigned long> First, typename... Args>
   decltype(auto) operator()(First &&first, Args &&...args) const {
     return fmtstd::vformat((*this)[first], fmtstd::make_format_args(std::forward<First>(first),
                                                                     std::forward<Args>(args)...));
