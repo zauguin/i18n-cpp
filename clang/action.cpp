@@ -77,7 +77,7 @@ inline SourceLocation locToLineBegin(SourceLocation loc, SourceManager &sm) {
 
 inline bool max_one_linebreak(clang::SourceRange range, SourceManager &sm) {
   StringRef text   = clang::Lexer::getSourceText(clang::CharSourceRange::getCharRange(range), sm,
-                                               clang::LangOptions());
+                                                 clang::LangOptions());
   auto first_break = text.find_first_of("\n\r");
   // If there is no linebreak or only in the last char, then we can't have more
   // than one linebreak.
@@ -370,7 +370,7 @@ class i18nVisitor : public clang::RecursiveASTVisitor<i18nVisitor> {
                                          : nullptr;
     clang::DeclRefExpr *end_expr   = end_decl
                                          ? sema.BuildDeclRefExpr(end_decl, end_decl->getType(),
-                                                               clang::VK_LValue, SourceLocation{})
+                                                                 clang::VK_LValue, SourceLocation{})
                                          : nullptr;
     return extract_string(begin_expr, end_expr);
   }
@@ -473,7 +473,7 @@ class i18nConsumer : public SemaConsumer {
                optional<std::string> comment_filter, optional<std::filesystem::path> base_path):
       ci(&ci),
       domain_filter(std::move(domain_filter)), empty_domain(empty_domain),
-      handler(comments, std::move(comment_filter)), base_path(std::move(base_path)) {
+      base_path(std::move(base_path)), handler(comments, std::move(comment_filter)) {
     ci.getPreprocessor().addCommentHandler(&handler);
   }
 
