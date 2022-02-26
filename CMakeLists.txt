@@ -7,8 +7,9 @@ project(i18n++
 
 set(CMAKE_CXX_EXTENSIONS off)
 
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-conan_basic_setup(TARGETS)
+list(APPEND CMAKE_PREFIX_PATH ${CMAKE_BINARY_DIR}/conan)
+find_package(fmt REQUIRED CONFIG)
+find_package(Boost REQUIRED CONFIG)
 
 include(CTest)
 
