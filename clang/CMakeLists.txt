@@ -16,7 +16,7 @@ set_target_properties(clang_common PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(plugin PROPERTIES
   PREFIX ""
   OUTPUT_NAME "i18n-clang")
-target_include_directories(clang_common PUBLIC ${LLVM_INCLUDE_DIRS})
+target_include_directories(clang_common PUBLIC ${LLVM_INCLUDE_DIRS} ${Boost_INCLUDE_DIR})
 target_compile_definitions(clang_common PUBLIC ${LLVM_DEFINITIONS})
 target_compile_features(clang_common PUBLIC cxx_std_17)
 if(${LLVM_ENABLE_RTTI})
