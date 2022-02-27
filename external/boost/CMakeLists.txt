@@ -9,4 +9,5 @@ find_package(Boost 1.58.0 REQUIRED)
 
 if(Boost_FOUND)
   set_target_properties(Boost::boost PROPERTIES IMPORTED_GLOBAL TRUE)
+  set_target_properties(Boost::headers PROPERTIES IMPORTED_GLOBAL TRUE)
 endif()
