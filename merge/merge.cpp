@@ -36,12 +36,24 @@ void presort_msgs(std::vector<Message> &msgs) {
 
 void postsort_msgs(std::vector<Message> &msgs) {
   std::sort(msgs.begin(), msgs.end(), [](const auto &a, const auto &b) {
+#ifdef __cpp_lib_three_way_comparison
     std::strong_ordering order = a.extractedComments <=> b.extractedComments;
     [[unlikely]] if (order == 0) {
       order = a.context <=> b.context;
       if (order == 0) { order = a.singular <=> b.singular; }
     }
     return order < 0;
+#else
+    if (a.extractedComments < b.extractedComments)
+      return true;
+    else if (a.extractedComments > b.extractedComments)
+      return false;
+    if (a.context < b.context)
+      return true;
+    else if (a.context > b.context)
+      return false;
+    return a.singular < b.singular;
+#endif
   });
 }
 
