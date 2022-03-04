@@ -5,6 +5,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <version>
 
 namespace {
 
@@ -12,12 +13,24 @@ using Message = client::ast::Message;
 
 void presort_msgs(std::vector<Message> &msgs) {
   std::sort(msgs.begin(), msgs.end(), [](const auto &a, const auto &b) {
+#ifdef __cpp_lib_three_way_comparison
     std::strong_ordering order = a.context <=> b.context;
     if (order == 0) {
       order = a.singular <=> b.singular;
       if (order == 0) { order = a.extractedComments <=> b.extractedComments; }
     }
     return order < 0;
+#else
+    if (a.context < b.context)
+      return true;
+    else if (a.context > b.context)
+      return false;
+    if (a.singular < b.singular)
+      return true;
+    else if (a.singular > b.singular)
+      return false;
+    return a.extractedComments < b.extractedComments;
+#endif
   });
 }
 
