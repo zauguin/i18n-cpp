@@ -1,6 +1,15 @@
 #include <catch2/catch_test_macros.hpp>
 #include <i18n/simple.hpp>
 #include <string>
+#include <version>
+
+#ifdef __cpp_lib_math_constants
+#include <numbers>
+
+using std::numbers::pi;
+#else
+double pi = 3.14159265358979;
+#endif
 
 using namespace mfk::i18n::literals;
 using namespace std::string_literals;
@@ -23,7 +32,7 @@ TEST_CASE("C locale shows identity", "[simple_i18n]") {
      *
      * But don't set it higher then 14, otherwise `double` might not be enough.
      */
-    REQUIRE("pi is 3.1416." == std::string("pi is {:.4Lf}."_(std::numbers::pi)));
+    REQUIRE("pi is 3.1416." == std::string("pi is {:.4Lf}."_(pi)));
   }
 
   SECTION("plural strings") {
@@ -50,7 +59,7 @@ TEST_CASE("de locale provides translations", "[translations]") {
 
   SECTION("singular formatting") {
     REQUIRE("Hallo Max!" == std::string("Hello {}!"_("Max")));
-    REQUIRE("Pi ist 3,1416." == std::string("pi is {:.4Lf}."_(std::numbers::pi)));
+    REQUIRE("Pi ist 3,1416." == std::string("pi is {:.4Lf}."_(pi)));
   }
 
   SECTION("plural strings") {
