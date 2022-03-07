@@ -29,6 +29,8 @@ class dev_seed {
   static void param(Iter) {}
 };
 
+#pragma mfk i18n domain("guessinggame")
+
 int main(int, char const *[]) {
   std::locale::global(std::locale(""));
   textdomain("guessinggame");

@@ -17,6 +17,7 @@
 #include <clang/Basic/SourceManager.h>
 #include <clang/Frontend/CompilerInstance.h>
 #include <clang/Lex/Preprocessor.h>
+#include <clang/Parse/ParseDiagnostic.h>
 #include <clang/Sema/Sema.h>
 #include <clang/Sema/SemaConsumer.h>
 #include <filesystem>
@@ -466,6 +467,45 @@ class i18nConsumer : public SemaConsumer {
   llvm::SmallVector<std::pair<SourceLocation, client::ast::Message>, 0> messages;
   llvm::SmallVector<std::pair<SourceLocation, clang::RawComment>, 0> comments;
 
+  struct PragmaI18NHandler : public clang::PragmaHandler {
+    explicit PragmaI18NHandler(i18nConsumer *consumer): PragmaHandler("i18n"), consumer(consumer) {}
+    void HandlePragma(clang::Preprocessor &PP, clang::PragmaIntroducer intro,
+                      clang::Token &i18nTok) {
+      clang::Token tok;
+      PP.LexUnexpandedToken(tok);
+      auto info = tok.getIdentifierInfo();
+      if (info && info->isStr("domain")) {
+        PP.Lex(tok);
+        if (tok.isNot(clang::tok::l_paren)) {
+          PP.Diag(tok.getLocation(), clang::diag::warn_pragma_expected_lparen) << "mfk i18n domain";
+          return;
+        }
+        std::string domain;
+        if (!PP.LexStringLiteral(tok, domain, "#pragma mfk i18n domain", true)) return;
+        if (tok.isNot(clang::tok::r_paren)) {
+          PP.Diag(tok.getLocation(), clang::diag::warn_pragma_expected_rparen) << "mfk i18n domain";
+          return;
+        }
+        if (consumer->empty_domain) {
+          if (consumer->domain_filter) {
+            if (*consumer->domain_filter != domain)
+              ; // TODO: WARNING?
+          } else
+            consumer->domain_filter = domain;
+        } else {
+          if (consumer->domain_filter) {
+            if (*consumer->domain_filter == domain) consumer->empty_domain = true;
+          } else
+            consumer->domain_filter = domain;
+        }
+      } else {
+        PP.Diag(tok.getLocation(), clang::diag::warn_pragma_expected_identifier) << "mfk i18n";
+        return;
+      }
+    }
+    i18nConsumer *consumer;
+  } pragmaHandler{this};
+
  public:
   CommentHandler handler;
 
@@ -475,7 +515,9 @@ class i18nConsumer : public SemaConsumer {
       domain_filter(std::move(domain_filter)), empty_domain(empty_domain),
       base_path(std::move(base_path)), handler(comments, std::move(comment_filter)) {
     ci.getPreprocessor().addCommentHandler(&handler);
+    ci.getPreprocessor().AddPragmaHandler("mfk", &pragmaHandler);
   }
+  ~i18nConsumer() { ci->getPreprocessor().RemovePragmaHandler("mfk", &pragmaHandler); }
 
   void HandleTranslationUnit(clang::ASTContext &context) override {
     i18nVisitor visitor(*sema, context);
@@ -516,11 +558,10 @@ class i18nConsumer : public SemaConsumer {
       }
   }
   bool match_domain(const std::optional<std::string> &domain) {
-    if (!empty_domain && !domain_filter) return true; // We don't filter
     if (domain)
       return domain_filter && *domain == *domain_filter;
     else
-      return empty_domain;
+      return empty_domain || !domain_filter;
   }
 };
 
@@ -553,7 +594,7 @@ bool i18nAction::ParseArgs(const std::vector<std::string> &args) {
       else
         base_path = std::filesystem::weakly_canonical(arg.str());
     } else
-      std::cerr << "I hate users.\n";
+      std::cerr << "Unknown plugin option passed\n";
   }
   return true;
 }
