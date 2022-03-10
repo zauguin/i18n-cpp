@@ -22,6 +22,7 @@ target_include_directories(i18n-lib INTERFACE
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
 target_compile_options(i18n-lib INTERFACE "$<IF:$<CXX_COMPILER_ID:Clang>,-fplugin=$<TARGET_FILE:$<INSTALL_INTERFACE:i18n::>plugin>,>")
 target_compile_features(i18n-lib INTERFACE cxx_std_20)
+target_compile_definitions(i18n-lib INTERFACE "$<IF:$<PLATFORM_ID:Darwin>,_INTL_REDIRECT_MACROS,>")
 
 add_custom_target(i18n_internal)
 add_dependencies(i18n_internal plugin)
