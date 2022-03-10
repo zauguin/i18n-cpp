@@ -13,7 +13,10 @@ add_subdirectory(external)
 add_subdirectory(merge)
 add_subdirectory(clang)
 
+find_package(Intl REQUIRED)
+
 add_library(i18n-lib INTERFACE)
+target_link_libraries(i18n-lib INTERFACE Intl::Intl)
 target_include_directories(i18n-lib INTERFACE
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
