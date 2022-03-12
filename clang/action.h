@@ -21,7 +21,7 @@ class i18nAction : public clang::PluginASTAction {
   bool ParseArgs(const clang::CompilerInstance &, const std::vector<std::string> &args) override {
     return ParseArgs(args);
   }
-  PluginASTAction::ActionType getActionType() override { return AddAfterMainAction; }
+  PluginASTAction::ActionType getActionType() override { return AddBeforeMainAction; }
 
  private:
   llvm::Optional<std::string> domain_filter;
