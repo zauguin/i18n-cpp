@@ -21,6 +21,7 @@ add_custom_command(OUTPUT tests.pot
   DEPENDS "$<JOIN:$<TARGET_OBJECTS:tests>,.poc;>.poc"
   COMMAND_EXPAND_LISTS)
 add_custom_target(tests_pot ALL DEPENDS tests.pot)
+add_dependencies(tests_pot tests)
 
 catch_discover_tests(tests)
 add_test(NAME compare_tests_pot COMMAND diff ${CMAKE_CURRENT_SOURCE_DIR}/tests.reference.pot tests.pot)
