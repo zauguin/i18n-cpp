@@ -7,6 +7,9 @@ project(i18n++
 
 set(CMAKE_CXX_EXTENSIONS off)
 
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+conan_basic_setup(TARGETS)
+
 include(CTest)
 
 add_subdirectory(external)
