@@ -12,16 +12,17 @@ include(CTest)
 add_subdirectory(external)
 add_subdirectory(merge)
 add_subdirectory(clang)
-add_subdirectory(example)
 
-add_library(i18n_lib INTERFACE)
-target_include_directories(i18n_lib INTERFACE ../include)
-target_compile_options(i18n_lib INTERFACE "-fplugin=$<TARGET_FILE:plugin>")
-target_compile_features(i18n_lib INTERFACE cxx_std_20)
+add_library(i18n-lib INTERFACE)
+target_include_directories(i18n-lib INTERFACE
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+  "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
+target_compile_options(i18n-lib INTERFACE "-fplugin=$<TARGET_FILE:plugin>")
+target_compile_features(i18n-lib INTERFACE cxx_std_20)
 
 add_custom_target(i18n_internal)
 add_dependencies(i18n_internal plugin)
-add_dependencies(i18n_lib i18n_internal)
+add_dependencies(i18n-lib i18n_internal)
 
 function(target_use_i18n TARGET)
   cmake_parse_arguments(PARSE_ARGV 1 I18N "NODOMAIN" "DOMAIN;COMMENT;BASEPATH;POT_FILE;POT_TARGET" "") 
@@ -30,7 +31,7 @@ function(target_use_i18n TARGET)
     message(WARNING "Ignoring unexpected arguments ${I18N_UNPARSED_ARGUMENTS}")
   endif()
 
-  target_link_libraries(${TARGET} PRIVATE i18n_lib)
+  target_link_libraries(${TARGET} PRIVATE i18n-lib)
   if(I18N_NODOMAIN)
     target_compile_options(${TARGET} PRIVATE "SHELL:-Xclang -plugin-arg-i18n -Xclang nodomain")
   endif()
@@ -70,5 +71,8 @@ function(target_use_i18n TARGET)
 endfunction()
 
 add_subdirectory(tests)
+add_subdirectory(example)
 
+install(TARGETS i18n-lib EXPORT i18nTargets)
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} FILES_MATCHING PATTERN "*.hpp")
+install(EXPORT i18nTargets NAMESPACE i18n:: FILE i18nTargets.cmake DESTINATION lib/cmake/i18n)

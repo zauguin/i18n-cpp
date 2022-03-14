@@ -28,5 +28,5 @@ endif()
 target_link_options(plugin PRIVATE -fuse-ld=lld)
 target_link_options(i18n-extract PRIVATE -fuse-ld=lld)
 
-install(TARGETS plugin DESTINATION lib)
-install(TARGETS i18n-extract DESTINATION bin)
+install(TARGETS plugin EXPORT i18nTargets DESTINATION lib)
+install(TARGETS i18n-extract EXPORT i18nTargets DESTINATION bin)
