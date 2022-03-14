@@ -28,14 +28,5 @@ endif()
 target_link_options(plugin PRIVATE -fuse-ld=lld)
 target_link_options(i18n-extract PRIVATE -fuse-ld=lld)
 
-add_library(i18n_lib INTERFACE)
-target_include_directories(i18n_lib INTERFACE ../include)
-target_compile_options(i18n_lib INTERFACE "-fplugin=$<TARGET_FILE:plugin>")
-target_compile_features(i18n_lib INTERFACE cxx_std_20)
-
-add_custom_target(i18n_internal)
-add_dependencies(i18n_internal plugin)
-add_dependencies(i18n_lib i18n_internal)
-
 install(TARGETS plugin DESTINATION lib)
 install(TARGETS i18n-extract DESTINATION bin)
