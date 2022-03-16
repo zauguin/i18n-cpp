@@ -10,4 +10,4 @@ target_sources(i18n-merge-pot PRIVATE main.cpp messages.cpp ../common/write_po.c
 target_link_libraries(i18n-merge-pot PRIVATE Boost::boost fmt::fmt)
 target_compile_features(i18n-merge-pot PRIVATE cxx_std_20)
 
-install(TARGETS i18n-merge-pot DESTINATION bin)
+install(TARGETS i18n-merge-pot EXPORT i18n++Targets DESTINATION bin)

@@ -464,6 +464,7 @@ class i18nConsumer : public SemaConsumer {
   optional<std::string> domain_filter;
   bool empty_domain;
   optional<std::filesystem::path> base_path;
+  optional<std::string> output;
   llvm::SmallVector<std::pair<SourceLocation, client::ast::Message>, 0> messages;
   llvm::SmallVector<std::pair<SourceLocation, clang::RawComment>, 0> comments;
 
@@ -510,10 +511,12 @@ class i18nConsumer : public SemaConsumer {
   CommentHandler handler;
 
   i18nConsumer(clang::CompilerInstance &ci, optional<std::string> domain_filter, bool empty_domain,
-               optional<std::string> comment_filter, optional<std::filesystem::path> base_path):
+               optional<std::string> comment_filter, optional<std::filesystem::path> base_path,
+               optional<std::string> output):
       ci(&ci),
       domain_filter(std::move(domain_filter)), empty_domain(empty_domain),
-      base_path(std::move(base_path)), handler(comments, std::move(comment_filter)) {
+      base_path(std::move(base_path)), output(std::move(output)),
+      handler(comments, std::move(comment_filter)) {
     ci.getPreprocessor().addCommentHandler(&handler);
     ci.getPreprocessor().AddPragmaHandler("mfk", &pragmaHandler);
   }
@@ -541,14 +544,19 @@ class i18nConsumer : public SemaConsumer {
                                                      combined);
       }
 
-    StringRef out_file = ci->getFrontendOpts().OutputFile;
-    if (out_file.empty()) out_file = main_file->getName();
-    if (out_file == "-") {
-      std::cerr << "Unable to derive i18n output file name\n";
-      return;
+    std::ofstream stream;
+    if (output)
+      stream = std::ofstream(output->c_str());
+    else {
+      StringRef out_file = ci->getFrontendOpts().OutputFile;
+      if (out_file.empty()) out_file = main_file->getName();
+      if (out_file == "-") {
+        std::cerr << "Unable to derive i18n output file name\n";
+        return;
+      }
+      clang::SmallString<128> output_file = out_file;
+      stream = std::ofstream((llvm::Twine(out_file) + ".poc").str().c_str());
     }
-    clang::SmallString<128> output_file = out_file;
-    std::ofstream stream((llvm::Twine(out_file) + ".poc").str().c_str());
 
     for (auto &&val : visitor.entries)
       if (match_domain(val.getValue().first)) {
@@ -570,7 +578,7 @@ class i18nConsumer : public SemaConsumer {
 std::unique_ptr<clang::ASTConsumer> i18nAction::CreateASTConsumer(clang::CompilerInstance &ci,
                                                                   StringRef) {
   return std::make_unique<i18nConsumer>(ci, domain_filter, empty_domain, std::move(comment_filter),
-                                        std::move(base_path));
+                                        std::move(base_path), std::move(output));
 }
 
 bool i18nAction::ParseArgs(const std::vector<std::string> &args) {
@@ -593,6 +601,11 @@ bool i18nAction::ParseArgs(const std::vector<std::string> &args) {
         std::cerr << "Duplicate base path ignored\n";
       else
         base_path = std::filesystem::weakly_canonical(arg.str());
+    } else if (arg.consume_front("o=")) {
+      if (output)
+        std::cerr << "Duplicate output path ignored\n";
+      else
+        output = arg.str();
     } else
       std::cerr << "Unknown plugin option passed\n";
   }

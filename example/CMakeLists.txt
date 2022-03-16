@@ -5,6 +5,7 @@ project(i18n_example VERSION 0.0.1 LANGUAGES CXX)
 add_executable(guessing)
 
 find_package(fmt REQUIRED)
+find_package(i18n++ REQUIRED)
 
 target_sources(guessing PRIVATE guessing.cpp)
 target_link_libraries(guessing PRIVATE fmt::fmt)
