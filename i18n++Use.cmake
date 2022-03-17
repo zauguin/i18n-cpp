@@ -53,6 +53,22 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL Clang)
     add_dependencies("${I18N_POT_TARGET}" "${TARGET}")
   endfunction()
 else()
+
+  # get_target_property(I18N_EXTRACT_PATH i18n::i18n-extract)
+  if(NOT DEFINED I18N_CLANG_RESOURCE_DIR)
+    execute_process(COMMAND clang -print-resource-dir
+      OUTPUT_VARIABLE I18N_POTENTIAL_RESOURCE_DIR
+      RESULT_VARIABLE I18N_HAS_KNOWN_RESOURCE_DIR
+      ERROR_QUIET)
+    if(I18N_HAS_KNOWN_RESOURCE_DIR EQUAL 0)
+      string(STRIP "${I18N_POTENTIAL_RESOURCE_DIR}" I18N_POTENTIAL_RESOURCE_DIR)
+    else()
+      unset(I18N_POTENTIAL_RESOURCE_DIR)
+    endif()
+  endif()
+  set(I18N_CLANG_RESOURCE_DIR "${I18N_POTENTIAL_RESOURCE_DIR}" CACHE PATH "Path to clang's resource directory. Leave empty to determine based on i18n++'s install location.")
+  mark_as_advanced(I18N_CLANG_RESOURCE_DIR)
+
   function(target_use_i18n TARGET)
     cmake_parse_arguments(PARSE_ARGV 1 I18N "NODOMAIN;NODATE" "DOMAIN;COMMENT;BASEPATH;POT_FILE;POT_TARGET" "") 
 
@@ -94,6 +110,10 @@ else()
       set(I18N_NODATE)
     endif()
 
+    if(NOT I18N_CLANG_RESOURCE_DIR STREQUAL "")
+      list(APPEND I18N_EXTRACT_ARGS "--extra-arg=-resource-dir=${I18N_CLANG_RESOURCE_DIR}")
+    endif()
+
     get_target_property(srcs ${TARGET} SOURCES)
     foreach(src ${srcs})
       get_source_file_property(location "${src}" LOCATION)
@@ -104,8 +124,8 @@ else()
     endforeach()
     add_custom_command(OUTPUT "${I18N_POT_FILE}"
       COMMAND ${I18N_NODATE}
-      $<TARGET_FILE:i18n::i18n-merge-pot> "--package=${PROJECT_NAME}" "--version=${PROJECT_VERSION}" "--output=${I18N_POT_FILE}" "$<JOIN:$<TARGET_OBJECTS:${TARGET}>,.poc;>.poc --extra-arg=-v --extra-arg=-fprofile-dir=/usr/local/lib/clang/15.0.0"
-      DEPENDS "$<JOIN:$<TARGET_OBJECTS:${TARGET}>,.poc;>.poc"
+      $<TARGET_FILE:i18n::i18n-merge-pot> "--package=${PROJECT_NAME}" "--version=${PROJECT_VERSION}" "--output=${I18N_POT_FILE}" "$<JOIN:$<TARGET_OBJECTS:${TARGET}>,.poc;>.poc"
+      # DEPENDS "$<JOIN:$<TARGET_OBJECTS:${TARGET}>,.poc;>.poc"
       COMMAND_EXPAND_LISTS)
     add_custom_target("${I18N_POT_TARGET}" ALL DEPENDS "${I18N_POT_FILE}")
     add_dependencies("${I18N_POT_TARGET}" "${TARGET}")
