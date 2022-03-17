@@ -52,11 +52,11 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. L10N: Please don't mess up the translation.
-#: tests/simple.cpp:15 tests/simple.cpp:49
+#: tests/simple.cpp:24 tests/simple.cpp:58
 msgid "Hello world!"
 msgstr ""
 
-#: tests/simple.cpp:19 tests/simple.cpp:52
+#: tests/simple.cpp:28 tests/simple.cpp:61
 msgid "Hello {}!"
 msgstr ""
 
@@ -66,29 +66,29 @@ msgstr ""
 #. 
 #.  But don't set it higher then 14, otherwise `double` might not be enough.
 #.      
-#: tests/simple.cpp:26 tests/simple.cpp:53
+#: tests/simple.cpp:35 tests/simple.cpp:62
 msgid "pi is {:.4Lf}."
 msgstr ""
 
-#: tests/simple.cpp:30 tests/simple.cpp:31 tests/simple.cpp:57 tests/simple.cpp:58
+#: tests/simple.cpp:39 tests/simple.cpp:40 tests/simple.cpp:66 tests/simple.cpp:67
 msgid "Hello planet!"
 msgid_plural "Hello planets!"
 msgstr[0] ""
 msgstr[1] ""
 
-#: tests/simple.cpp:32 tests/simple.cpp:33 tests/simple.cpp:59 tests/simple.cpp:60
+#: tests/simple.cpp:41 tests/simple.cpp:42 tests/simple.cpp:68 tests/simple.cpp:69
 msgid "Hello person!"
 msgid_plural "Hello people!"
 msgstr[0] ""
 msgstr[1] ""
 
-#: tests/simple.cpp:37 tests/simple.cpp:38 tests/simple.cpp:64 tests/simple.cpp:65
+#: tests/simple.cpp:46 tests/simple.cpp:47 tests/simple.cpp:73 tests/simple.cpp:74
 msgid "I ate {} apple."
 msgid_plural "I ate {} apples."
 msgstr[0] ""
 msgstr[1] ""
 
-#: tests/simple.cpp:39 tests/simple.cpp:40 tests/simple.cpp:66 tests/simple.cpp:67
+#: tests/simple.cpp:48 tests/simple.cpp:49 tests/simple.cpp:75 tests/simple.cpp:76
 msgid "I ate an apple."
 msgid_plural "I ate {} apples."
 msgstr[0] ""
