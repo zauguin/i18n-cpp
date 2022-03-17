@@ -1,5 +1,3 @@
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
 if(CMAKE_CXX_COMPILER_ID STREQUAL Clang)
   function(target_use_i18n TARGET)
     cmake_parse_arguments(PARSE_ARGV 1 I18N "NODOMAIN;NODATE" "DOMAIN;COMMENT;BASEPATH;POT_FILE;POT_TARGET" "") 
@@ -71,6 +69,8 @@ else()
 
   function(target_use_i18n TARGET)
     cmake_parse_arguments(PARSE_ARGV 1 I18N "NODOMAIN;NODATE" "DOMAIN;COMMENT;BASEPATH;POT_FILE;POT_TARGET" "") 
+
+    set_target_properties("${TARGET}" PROPERTIES EXPORT_COMPILE_COMMANDS ON)
 
     if(DEFINED I18N_UNPARSED_ARGUMENTS)
       message(WARNING "Ignoring unexpected arguments ${I18N_UNPARSED_ARGUMENTS}")

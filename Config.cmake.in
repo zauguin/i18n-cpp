@@ -1,5 +1,8 @@
 @PACKAGE_INIT@
 
+include(CMakeFindDependencyMacro)
+find_dependency(Intl REQUIRED)
+
 include ( "${CMAKE_CURRENT_LIST_DIR}/i18n++Targets.cmake" )
 
 include ( "${CMAKE_CURRENT_LIST_DIR}/i18n++Use.cmake" )
