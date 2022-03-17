@@ -51,7 +51,7 @@ TEST_CASE("C locale shows identity", "[simple_i18n]") {
 }
 
 TEST_CASE("de locale provides translations", "[translations]") {
-  std::locale::global(std::locale("de_DE.UTF_8"));
+  std::locale::global(std::locale("de_DE.UTF-8"));
   bindtextdomain("testcases", TEST_SOURCE_DIR);
   textdomain("testcases");
 
