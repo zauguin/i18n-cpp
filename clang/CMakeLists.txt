@@ -4,7 +4,7 @@ add_executable(i18n-extract)
 add_library(plugin MODULE)
 add_library(clang_common OBJECT)
 
-find_package(Clang REQUIRED)
+find_package(Clang REQUIRED CONFIG)
 
 target_sources(clang_common PRIVATE attr.cpp action.cpp ../common/write_po.cpp)
 target_sources(i18n-extract PRIVATE tool.cpp)
@@ -12,7 +12,17 @@ target_sources(plugin PRIVATE plugin.cpp)
 target_link_libraries(clang_common PUBLIC Boost::headers)
 target_link_libraries(plugin PRIVATE clang_common)
 target_link_libraries(i18n-extract PRIVATE clang_common)
-target_link_libraries(i18n-extract PRIVATE clang-cpp LLVM)
+
+if(CLANG_LINK_CLANG_DYLIB)
+  target_link_libraries(i18n-extract PRIVATE clang-cpp LLVM)
+else()
+  target_link_libraries(i18n-extract PRIVATE
+    clangAST
+    clangFrontend
+    clangTooling
+  )
+endif()
+
 set_target_properties(clang_common PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(plugin PROPERTIES
   PREFIX ""
