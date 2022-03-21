@@ -55,3 +55,5 @@ INSTALL(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/i18n++ConfigVersion.cmake
   i18n++Use.cmake
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/i18n++)
+
+include(CPack)
