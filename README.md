@@ -101,9 +101,8 @@ cd i18n++
 git submodule update --init
 CXX=clang++ cmake -B build -G Ninja
 cmake --build build
-sudo cmake --build build
+sudo cmake --build build -t install
 ```
-
 The file can then be compiled with
 
     clang++ -c filename.cpp -fplugin=i18n-clang.so -Xclang -plugin-arg-i18n -Xclang nodomain
@@ -114,3 +113,5 @@ All the `.poc` files in your program can be merged into a `.pot` file using
     i18n-merge-pot --package="Awesome project" --version=1.0.0 --output=awesome.pot *.poc
 
 This `.pot` file can then be handled as if it had been generated with `xgettext`.
+
+See [the example directory](example/CMakeLists.txt) for an example how to integrate this into a CMake project.
