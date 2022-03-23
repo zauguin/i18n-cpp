@@ -34,7 +34,9 @@ add_executable(i18n::i18n-merge-pot ALIAS i18n-merge-pot)
 add_executable(i18n::i18n-extract ALIAS i18n-extract)
 include ( "${CMAKE_CURRENT_LIST_DIR}/i18n++Use.cmake" )
 
-add_subdirectory(tests)
+if(BUILD_TESTING)
+  add_subdirectory(tests)
+endif()
 
 install(TARGETS i18n-lib EXPORT i18n++Targets)
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} FILES_MATCHING PATTERN "*.hpp")
