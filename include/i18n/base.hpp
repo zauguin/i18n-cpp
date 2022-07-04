@@ -6,6 +6,16 @@
 #include <concepts>
 #include <cstdint>
 
+#ifdef __has_cpp_attribute
+#if __has_cpp_attribute(mfk::i18n)
+#define I18N_ATTR(x) [[mfk::i18n ## x]]
+#else
+#define I18N_ATTR(x)
+#endif
+#else
+#define I18N_ATTR(x)
+#endif
+
 namespace mfk::i18n {
 
 // Char should be char, char8_t, char16_t or char32_t.
@@ -86,7 +96,7 @@ join_with_separator(CompileTimeString<Char1, std::size_t(-1)>, Char2,
 
 template <CompileTimeString Domain, CompileTimeString Context, CompileTimeString Singular,
           CompileTimeString Plural>
-class [[mfk::i18n]] CompileTimeI18NString {
+class I18N_ATTR() CompileTimeI18NString {
  public:
   using char_type = typename decltype(Singular)::char_type;
   static_assert(Context.length == -1
@@ -103,21 +113,21 @@ class [[mfk::i18n]] CompileTimeI18NString {
  private:
   static constexpr auto idStorage = detail::join_with_separator(
       detail::join_with_separator(Context, char_type('\4'), Singular), char_type('\0'), Plural);
-  static constexpr auto domain_begin [[mfk::i18n_domain_begin]] =
+  static constexpr auto domain_begin I18N_ATTR(_domain_begin) =
       Domain.length == -1 ? nullptr : Domain.begin();
-  static constexpr auto domain_end [[mfk::i18n_domain_end]] =
+  static constexpr auto domain_end I18N_ATTR(_domain_end) =
       domain_begin ? domain_begin + Domain.length : nullptr;
-  static constexpr const char_type *context_begin [[mfk::i18n_context_begin]] =
+  static constexpr const char_type *context_begin I18N_ATTR(_context_begin) =
       Context.length == -1 ? nullptr : idStorage.begin();
-  static constexpr const char_type *context_end [[mfk::i18n_context_end]] =
+  static constexpr const char_type *context_end I18N_ATTR(_context_end) =
       context_begin ? context_begin + Context.length : nullptr;
-  static constexpr const char_type *singular_begin [[mfk::i18n_singular_begin]] =
+  static constexpr const char_type *singular_begin I18N_ATTR(_singular_begin) =
       idStorage.begin() + (Context.length + 1); // context_end+1 or idStorage.begin()
-  static constexpr const char_type *singular_end [[mfk::i18n_singular_end]] =
+  static constexpr const char_type *singular_end I18N_ATTR(_singular_end) =
       singular_begin + Singular.length;
-  static constexpr const char_type *plural_begin [[mfk::i18n_plural_begin]] =
+  static constexpr const char_type *plural_begin I18N_ATTR(_plural_begin) =
       Plural.length == -1 ? nullptr : singular_end + 1;
-  static constexpr const char_type *plural_end [[mfk::i18n_plural_end]] =
+  static constexpr const char_type *plural_end I18N_ATTR(_plural_end) =
       plural_begin ? plural_begin + Plural.length : nullptr;
 };
 
