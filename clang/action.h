@@ -4,6 +4,7 @@
 
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -24,9 +25,9 @@ class i18nAction : public clang::PluginASTAction {
   PluginASTAction::ActionType getActionType() override { return AddBeforeMainAction; }
 
  private:
-  llvm::Optional<std::string> domain_filter;
+  std::optional<std::string> domain_filter;
   bool empty_domain = false;
-  llvm::Optional<std::string> comment_filter;
-  llvm::Optional<std::filesystem::path> base_path;
-  llvm::Optional<std::string> output;
+  std::optional<std::string> comment_filter;
+  std::optional<std::filesystem::path> base_path;
+  std::optional<std::string> output;
 };

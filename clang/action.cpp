@@ -30,13 +30,9 @@
 
 namespace {
 
-template <typename T>
-using optional         = llvm::Optional<T>;
-constexpr auto nullopt = llvm::None;
-template <typename T>
-auto make_optional(T value) {
-  return llvm::Optional<T>(std::move(value));
-}
+using std::optional;
+using std::make_optional;
+using std::nullopt;
 
 template <typename Int, Int Empty = Int(-1)>
 class OptionalInt {
@@ -44,7 +40,7 @@ class OptionalInt {
 
  public:
   constexpr OptionalInt() = default;
-  constexpr OptionalInt(decltype(llvm::None)) {}
+  constexpr OptionalInt(std::nullopt_t) {}
   constexpr OptionalInt(const OptionalInt &val): value(val.value) {}
   constexpr OptionalInt(Int val): value(val) { assert(*this); }
   constexpr OptionalInt &operator=(OptionalInt val) {
@@ -413,13 +409,13 @@ class i18nVisitor : public clang::RecursiveASTVisitor<i18nVisitor> {
         return expr.get()->getIntegerConstantExpr(*context);
       }();
 
-      if (!len_value.hasValue()) return nullopt;
-      if (len_value.getValue().isNegative()) {
+      if (!len_value) return nullopt;
+      if (len_value->isNegative()) {
         auto builder = diag->Report(end_expr->getBeginLoc(), wrong_order);
         return nullopt;
       }
 
-      len = len_value.getValue().getExtValue();
+      len = len_value->getExtValue();
       str.reserve(len);
     } else
       len = -1;
@@ -428,9 +424,9 @@ class i18nVisitor : public clang::RecursiveASTVisitor<i18nVisitor> {
     for (; len == -1 || index < len; ++index) {
       str_index->setValue(*context, index);
       auto byte_value = subscript_expr->getIntegerConstantExpr(*context);
-      if (!byte_value.hasValue()) { return nullopt; }
-      if (len == -1 && byte_value.getValue().isNullValue()) break;
-      str.push_back(byte_value.getValue().getExtValue());
+      if (!byte_value) { return nullopt; }
+      if (len == -1 && byte_value->isNullValue()) break;
+      str.push_back(byte_value->getExtValue());
     }
     return std::make_optional(str);
   }
