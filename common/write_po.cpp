@@ -1,3 +1,5 @@
+#include <cstdint>
+
 #include "../common/ast.hpp"
 
 namespace client::ast {
